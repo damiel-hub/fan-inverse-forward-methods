@@ -7,7 +7,6 @@ from scipy.ndimage import distance_transform_edt
 from cone_function import cone_function
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
-from matplotlib.path import Path
 
 
 def fill_nans_with_nearest(zTopo):
