@@ -39,7 +39,7 @@ class SPM:
         wallMesh[np.isnan(self.zMesh_crop)] = diagonal_length * 10
         
         # Set the apex height for the shortest path calculation
-        zApex_s = diagonal_length * 10 - 1e4
+        zApex_s = diagonal_length * 10 - 1e-4
         
         # Compute the shortest path topography using a hypothetical FanTopo function
         sTopo = fanTopo.fan_topo(self.xMesh_crop, self.yMesh_crop, wallMesh, [self.xApex], [self.yApex], [zApex_s], {

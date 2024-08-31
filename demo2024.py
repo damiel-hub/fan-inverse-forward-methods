@@ -15,7 +15,7 @@ if __name__ == "__main__":
     shape_fan_boundary = r"datasets\raw\shape\PT2024.shp"
 
     shortest_path_distance = SPM(topo_post_event, shape_fan_boundary)
-    xMesh_crop, yMesh_crop, zMesh_crop, sMesh_crop = shortest_path_distance.within_boundary(pltFlag = False)
+    xMesh_crop, yMesh_crop, zMesh_crop, sMesh_crop = shortest_path_distance.within_boundary(pltFlag = True)
     boundary_x, boundary_y, boundary_z, boundary_s = shortest_path_distance.along_boundary(pltFlag = False)
 
     # Fit quadratic elevation-distance relationship
