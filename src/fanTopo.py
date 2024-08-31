@@ -7,6 +7,7 @@ from scipy.ndimage import distance_transform_edt
 from cone_function import cone_function
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
+import gis_utils
 
 
 def fill_nans_with_nearest(zTopo):
@@ -123,7 +124,7 @@ def visi_polygon(polygonX, polygonY, observeX, observeY, epsilon=1e-8, snap_dist
         observer.snap_to_vertices_of(env, epsilon)
     else:
         observer.snap_to_boundary_of(env, snap_dist)
-        observer.snap_to_vertices_of(env, snap_dist)        
+        observer.snap_to_vertices_of(env, snap_dist)      
 
     # Generate the visibility polygon from the observer's perspective
     isovist = vis.Visibility_Polygon(observer, env, epsilon)
@@ -139,8 +140,11 @@ def visi_polygon(polygonX, polygonY, observeX, observeY, epsilon=1e-8, snap_dist
     observer_snap = isovist.observer()
     observer_snap_x = np.array(observer_snap.x())
     observer_snap_y = np.array(observer_snap.y())
+
+    observer_in_out = vis.Point(observer_snap.x(), observer_snap.y())
+    visi_in_out = observer_in_out._in(env, epsilon)
     
-    return xVisi, yVisi, xChildApex, yChildApex, observer_snap_x, observer_snap_y
+    return xVisi, yVisi, xChildApex, yChildApex, observer_snap_x, observer_snap_y, visi_in_out
 
 
 def compute_shortest_path(polygonX, polygonY, observeX, observeY, end_x, end_y, epsilon, snap_dist):
@@ -253,7 +257,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
     xyVisPolygonAll = []
 
     if options['dispflag']:
-        fig, ax = plt.subplots()
+        _ , ax = plt.subplots()
 
     zTopo = np.full_like(zMesh, np.nan)
     thetaMesh = np.full_like(zMesh, np.nan)
@@ -277,17 +281,21 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                 'tanInfinite': options['tanInfiniteM'][jj],
                 'dz_interp': options['dz_interpM'][jj]
             })
-            
-            contour_coords = find_contour_coordinates(xMesh, yMesh, zCone - zMesh, 1e-6)
+
+            # apex_zMesh = interp2d(yApex, xApex, yMesh[:, 0], xMesh[0, :], zMesh)
+            # apex_zCone = interp2d(yApex, xApex, yMesh[:, 0], xMesh[0, :], zCone)
+            contour_coords = find_contour_coordinates(xMesh, yMesh, zCone - zMesh, 0)
+            zCone_copy = zCone.copy()
             n_nodes = len(contour_coords[0])
-            
+
+           
             if n_nodes > 5:  # Ignore the apex whose impact is too small
                 xContour = [contour_coords[i][:,0] for i in range(len(contour_coords))]
                 yContour = [contour_coords[i][:,1] for i in range(len(contour_coords))]
 
-                xVisi, yVisi, xChildApex, yChildApex, _, _ = visi_polygon(xContour, yContour, xApex, yApex, snap_dist = max(dxMesh,dyMesh)*np.sqrt(2))
-                
-                if len(xVisi) > 5:  # Ignore the apex whose impact is too small
+                xVisi, yVisi, xChildApex, yChildApex, _, _, visi_in_out = visi_polygon(xContour, yContour, xApex, yApex, snap_dist = max(dxMesh,dyMesh)*np.sqrt(2))
+
+                if len(xVisi) > 5 and visi_in_out:  # Ignore the apex whose impact is too small
                     if options['saveVisPolygon']:
                         D_Visi = np.sqrt((xVisi - xApex) ** 2 + (yVisi - yApex) ** 2)
                         zVisi = cone_function(zApex, D_Visi, {
@@ -321,7 +329,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                             xyVisPolygonAll = np.vstack((xyVisPolygonAll, np.column_stack((xVisi, yVisi))))
 
                     # Add effective children apexes into the apex list
-                    CTopo = find_contour_coordinates(xMesh, yMesh, kTopo, 0)                   
+                    CTopo = find_contour_coordinates(xMesh, yMesh, kTopo, 1e-6)                   
                     CTopo_withnan = CTopo.copy()
                     CTopo = np.vstack(CTopo).T
                     
@@ -374,7 +382,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                                 xyzkApex = np.vstack((xyzkApex, [xChildApex[i], yChildApex[i], zChildApex, kApex]))
                     
                     # Remove buried apexes
-                    fill_nan_zTopo = fill_nans_with_nearest(zTopo)
+                    fill_nan_zTopo = fill_nans_with_nearest(zTopo)          
                     interp_func = RegularGridInterpolator((xMesh[0, :], yMesh[:, 0]), fill_nan_zTopo.T)
                     zAtopo = interp_func(xyzkApex[:, 0:2])
                     zAtopo_vale = cone_function(zAtopo, 2*np.sqrt(2)*dxMesh, {
@@ -385,7 +393,14 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                         'tanInfinite': options['tanInfiniteM'][jj],
                         'dz_interp': options['dz_interpM'][jj]
                     })
+
+                    if kApex is None:
+                        # print('zMesh(apex) = '+ str(interp_func([xApex, yApex])))
+                        print('zApex = ' + str(zApex))
+                        print(xyzkApex[:, 0:3])
                     xyzkApex = xyzkApex[~(xyzkApex[:, 2] <= zAtopo_vale), :]
+
+                    
                     # Sort the apexes by elevation
                     if xyzkApex.shape[0] > kApex:
                         xyzkApex[(kApex-1):, :] = xyzkApex[(kApex-1):, :][xyzkApex[(kApex-1):, 2].argsort()[::-1]]
@@ -398,24 +413,26 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                     xyzVisPolygon.append([np.nan, np.nan, np.nan])
 
             # Show topography, active fan contour, and visible sector and apexes
-            if options['dispflag']:
+            if options['dispflag'] and visi_in_out:
                 if kApex is None:
-                    fig, ax = plt.subplots()
+                    _, ax = plt.subplots()
                 ax.clear()
-                ax.contourf(xMesh,yMesh,zTopo)
+                if kApex is None:
+                    print(xApex)
+                    print(yApex)
+                    print('visi_error: '+ str(visi_in_out))
+                    gis_utils.write_geotiff('zTopo.tif',xMesh,yMesh,zMesh,3826)
+                    gis_utils.write_geotiff('zCone.tif',xMesh,yMesh,zCone_copy,3826)
+                plt.imshow(zTopo, extent=[xMesh.min()-dxMesh/2, xMesh.max()+dxMesh/2, yMesh.min()-dyMesh/2, yMesh.max()+dyMesh/2], origin='lower', cmap='viridis')
+                #ax.contourf(xMesh,yMesh,zTopo)
                 for i in range(len(xContour)):
                     ax.plot(xContour[i], yContour[i], 'b-')
-                    # for j in range(len(xContour[i])):
-                    #     ax.text(xContour[i][j], yContour[i][j], str(j), fontsize=12, color='red')
                 ax.plot(xyzkApex[:,0],xyzkApex[:,1],'k.-')
-                
                 for i in range(len(CTopo_withnan)):
                     ax.plot(CTopo_withnan[i][:,0], CTopo_withnan[i][:,1], 'r--')
-                
                 ax.plot(xVisi, yVisi, 'r-')
                 ax.plot(xChildApex, yChildApex, 'g*')
                 ax.plot(xApex, yApex, 'ro')
-                
                 ax.set_xlim(np.nanmin(xMesh), np.nanmax(xMesh))
                 ax.set_ylim(np.nanmin(yMesh), np.nanmax(yMesh))
                 ax.set_aspect('equal')

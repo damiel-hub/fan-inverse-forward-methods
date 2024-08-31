@@ -23,8 +23,8 @@ def read_geotiff(file_path):
     y_max = transform[3]
     x_pixel_size = transform[1]
     y_pixel_size = -transform[5]
-    xMesh = np.arange(x_min, x_min + (x_pixels * x_pixel_size), x_pixel_size)
-    yMesh = np.arange(y_max, y_max - (y_pixels * y_pixel_size), -y_pixel_size)
+    xMesh = np.arange(x_min + x_pixel_size/2, x_min + (x_pixels * x_pixel_size), x_pixel_size)
+    yMesh = np.arange(y_max - y_pixel_size/2, y_max - (y_pixels * y_pixel_size), -y_pixel_size)
     xMesh, yMesh = np.meshgrid(xMesh, yMesh)
     zMesh = zMesh.astype(np.float64)
     return xMesh, yMesh, zMesh
@@ -72,6 +72,16 @@ def write_geotiff(file_path, xMesh, yMesh, zMesh, epsg_code=None):
         epsg_code (int or None): The EPSG code for the coordinate reference system.
                                  If None, no spatial reference system is set.
     """
+    # Expand the x and y coordinates while preserving the order
+    flip_lr = xMesh[0, 0] > xMesh[0, -1]
+    flip_ud = yMesh[0, 0] < yMesh[-1, 0]
+
+    if flip_lr:
+        xMesh = np.fliplr(xMesh)
+        zMesh = np.fliplr(zMesh)
+    if flip_ud:
+        yMesh = np.flipud(yMesh)
+        zMesh = np.flipud(zMesh)    
     rows, cols = zMesh.shape
     x_pixel_size = (xMesh[0, 1] - xMesh[0, 0])
     y_pixel_size = (yMesh[0, 0] - yMesh[1, 0])

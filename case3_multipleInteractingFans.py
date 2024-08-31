@@ -43,8 +43,10 @@ if __name__ == "__main__":
 
     # Step 7: Plot the filled contour plot of the topography
     plt.figure(figsize=(10, 8))
-    plt.contourf(xMesh, yMesh, zTopo[0], levels=50, cmap='viridis')
-    plt.contour(xMesh, yMesh, zMap, levels=50, colors='k')
+    dxMesh = xMesh[0,1] - xMesh[0,0]
+    dyMesh = yMesh[0,0] - yMesh[1,0]
+    plt.imshow(zTopo[0], extent=[xMesh.min()-dxMesh/2, xMesh.max()+dxMesh/2, yMesh.min()-dyMesh/2, yMesh.max()+dyMesh/2], origin='upper', cmap='viridis')
+    plt.contour(xMesh, yMesh, zMap, levels=50, colors='k',corner_mask=True)
     plt.plot(xApexM, yApexM, 'r.', markersize=8, label='Apex Points')
     plt.title('Filled Contour Plot of zTopo')
     plt.xlabel('X Coordinate')
