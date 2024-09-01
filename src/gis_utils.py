@@ -1,5 +1,7 @@
 from osgeo import gdal, osr, ogr
 import numpy as np
+import subprocess
+import matplotlib.pyplot as plt
 gdal.UseExceptions()
 
 def read_geotiff(file_path):
@@ -19,12 +21,12 @@ def read_geotiff(file_path):
     transform = dataset.GetGeoTransform()
     x_pixels = zMesh.shape[1]
     y_pixels = zMesh.shape[0]
-    x_min = transform[0]
-    y_max = transform[3]
+    x_orign = transform[0]
+    y_orign = transform[3]
     x_pixel_size = transform[1]
     y_pixel_size = -transform[5]
-    xMesh = np.arange(x_min + x_pixel_size/2, x_min + (x_pixels * x_pixel_size), x_pixel_size)
-    yMesh = np.arange(y_max - y_pixel_size/2, y_max - (y_pixels * y_pixel_size), -y_pixel_size)
+    xMesh = np.arange(x_orign + x_pixel_size/2, x_orign + (x_pixels * x_pixel_size), x_pixel_size)
+    yMesh = np.arange(y_orign - y_pixel_size/2, y_orign - (y_pixels * y_pixel_size), -y_pixel_size)
     xMesh, yMesh = np.meshgrid(xMesh, yMesh)
     zMesh = zMesh.astype(np.float64)
     return xMesh, yMesh, zMesh
@@ -221,7 +223,41 @@ def save_resampled_geotiff(data, geo_transform, projection, output_path):
     out_band.FlushCache()
     out_raster = None
 
-def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_path=None, output_resampled_path = 'datasets/processed/gis_utils/pre_resample.tif'):
+
+def get_gdalinfo(filepath):
+  """
+  Gets information about a GeoTIFF using gdalinfo.
+
+  Args:
+      filepath: Path to the GeoTIFF file.
+
+  Returns:
+      The output of the gdalinfo command as a string.
+  """
+  # Build the command
+  command = ["gdalinfo", filepath]
+  # Execute the command and capture output
+  process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  output, error = process.communicate()
+  # Check for errors   
+
+  if error:
+    raise RuntimeError(f"Error running gdalinfo: {error.decode('utf-8')}")
+  # Return the decoded output
+  return output.decode('utf-8')
+
+
+
+def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_path=None, output_resampled_path = 'pre_resample.tif', pltFlag = 0):
+    debug = 0
+    if debug:
+        pre_tiff_info = get_gdalinfo(pre_tiff)  # Replace with your actual filename
+        print('pre_tiff_info')
+        print(pre_tiff_info)
+        post_tiff_info = get_gdalinfo(post_tiff)  # Replace with your actual filename
+        print('post_tiff_info')
+        print(post_tiff_info)
+
     # Open the first GeoTIFF
     ds1 = gdal.Open(post_tiff)
     band1 = ds1.GetRasterBand(1)
@@ -237,17 +273,34 @@ def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_pa
     # Resample ds2 to match ds1 if necessary
     if geo_transform1 != geo_transform2:
         print('Resample pre-event tif to match post-event tif is necessary')
+        if geo_transform1[1]>0:
+            xmin1 = geo_transform1[0]
+            xmax1 = geo_transform1[0] + geo_transform1[1] * data1.shape[1]
+        else:
+            xmax1 = geo_transform1[0]
+            xmin1 = geo_transform1[0] + geo_transform1[1] * data1.shape[1]            
+
+        if geo_transform1[5]<0:
+            ymin1 = geo_transform1[3] + geo_transform1[5] * data1.shape[0]
+            ymax1 = geo_transform1[3]
+        else:
+            ymax1 = geo_transform1[3] + geo_transform1[5] * data1.shape[0]
+            ymin1 = geo_transform1[3]
+        
         ds2_resampled = gdal.Warp('', ds2, format='MEM',
-                                  xRes=geo_transform1[1], yRes=abs(geo_transform1[5]),
-                                  outputBounds=[geo_transform1[0], geo_transform1[3],
-                                                geo_transform1[0] + geo_transform1[1] * data1.shape[1],
-                                                geo_transform1[3] + geo_transform1[5] * data1.shape[0]],
-                                  resampleAlg=gdal.GRA_Bilinear)
+                                xRes=geo_transform1[1], yRes=geo_transform1[5],
+                                outputBounds=[xmin1, ymin1, xmax1, ymax1],
+                                resampleAlg=gdal.GRA_Bilinear
+        )
         band2_resampled = ds2_resampled.GetRasterBand(1)
         data2_resampled = band2_resampled.ReadAsArray()
 
         if output_resampled_path:
             save_resampled_geotiff(data2_resampled, geo_transform1, ds1.GetProjection(), output_resampled_path)
+            if debug:
+                output_tiff_info = get_gdalinfo(output_resampled_path)  # Replace with your actual filename
+                print('resample_tiff_info')
+                print(output_tiff_info)
     else:
         data2_resampled = data2
 
@@ -278,6 +331,16 @@ def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_pa
 
     # Calculate the volume difference
     volume_difference = np.nansum(difference) * pixel_area
+
+    # Plot the DoD map if pltFlag is set to 1
+    if pltFlag == 1:
+        plt.figure(figsize=(10, 8))
+        plt.imshow(difference, cmap='RdBu_r', vmin=-np.nanmax(abs(difference)), vmax=np.nanmax(abs(difference)))
+        plt.colorbar(label='Elevation Difference (m)')
+        plt.title('Difference of Differences (DoD) Map')
+        plt.xlabel('X Coordinate')
+        plt.ylabel('Y Coordinate')
+        plt.show()
 
     # Clean up
     ds1 = None

@@ -1,8 +1,4 @@
 import sys
-import numpy as np
-from scipy.interpolate import RegularGridInterpolator
-import matplotlib.pyplot as plt
-
 sys.path.append('src/')
 from SPM import SPM
 from EDR import EDR
