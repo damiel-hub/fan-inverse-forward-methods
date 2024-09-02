@@ -6,7 +6,7 @@ import gis_utils
 import reconstruct_fantopo
 
 if __name__ == "__main__":
-    topo_pre_event = r"datasets\raw\tif\topo_10m_PuTunPuNas_pre_2024_min.tif"
+    topo_pre_event = r"datasets\raw\tif\topo_10m_PuTunPuNas_pre_2024_min_base2024.tif"
     topo_post_event = r"datasets\raw\tif\topo_10m_PuTunPuNas_2024.tif"
     shape_fan_boundary = r"datasets\raw\shape\PT2024.shp"
 
@@ -24,8 +24,8 @@ if __name__ == "__main__":
 
     xApex, yApex = shortest_path_distance.xyApex()
     volume_expected = gis_utils.calculate_volume_difference_within_polygon(topo_pre_event, topo_post_event, shape_fan_boundary)
-    guessHeightAboveGround_bottom = 20
-    guessHeightAboveGround_top = 22
+    guessHeightAboveGround_bottom = 15
+    guessHeightAboveGround_top = 20
     xMesh, yMesh, zTopo, _ = reconstruct_fantopo.reconstruct_fan_surface(topo_pre_event, xApex, yApex, volume_expected, guessHeightAboveGround_top, guessHeightAboveGround_bottom, fitting_s_z_within_boundary, fanBoundarySHP=shape_fan_boundary, tol=0.03, debug=False)
     epgs_code = gis_utils.get_epsg_code(topo_pre_event)
     gis_utils.write_geotiff('results/zTopo_2024.tif',xMesh, yMesh, zTopo, epgs_code)

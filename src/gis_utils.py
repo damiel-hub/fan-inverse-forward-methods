@@ -337,7 +337,7 @@ def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_pa
         plt.figure(figsize=(10, 8))
         plt.imshow(difference, cmap='RdBu_r', vmin=-np.nanmax(abs(difference)), vmax=np.nanmax(abs(difference)))
         plt.colorbar(label='Elevation Difference (m)')
-        plt.title('Difference of Differences (DoD) Map')
+        plt.title('DEM of Differences (DoD) Map')
         plt.xlabel('X Coordinate')
         plt.ylabel('Y Coordinate')
         plt.show()

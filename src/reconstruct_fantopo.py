@@ -133,7 +133,7 @@ def reconstruct_fan_surface(topo_pre_event, xApex, yApex, volume_expected, guess
 
     # Prepare parameters for parallel processing
     params = [(height, xMesh, yMesh, zMesh, xApex, yApex, dz_profile, volumeCalculateMask, interpolator, debug, epsg_code) for height in heights]
-    
+
     # Use ProcessPoolExecutor to parallelize the height simulation
     with ProcessPoolExecutor() as executor:
         results = list(executor.map(simulate_height_volume, params))

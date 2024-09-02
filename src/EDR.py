@@ -5,15 +5,17 @@ from numpy.polynomial.polynomial import Polynomial
 
 class EDR: # Elevation-Distance Relationship
 
-    def __init__(self, sMap, zMap):
+    def __init__(self, sMap, zMap, drawFlag = False):
         # Flatten the input matrices
         self.s_flaten_nan = sMap.flatten()
         self.z_flaten_nan = zMap.flatten()     
         nan_index = np.isnan(self.s_flaten_nan) | np.isnan(self.z_flaten_nan)
         self.s_flaten = self.s_flaten_nan[~nan_index]
         self.z_flaten = self.z_flaten_nan[~nan_index]
+        if drawFlag:
+            plt.scatter(self.s_flaten, self.z_flaten, color='k', marker='.')
 
-    def medianFilter_on(self, bin_size, ds, outlength, pltFlag = False):
+    def medianFilter_on(self, bin_size, ds, outlength, pltFlag = False, drawFlag = False):
 
         # Define bins for s values
         bin_pts_s = np.arange(np.min(self.s_flaten), np.max(self.s_flaten) + bin_size, bin_size)
@@ -68,14 +70,26 @@ class EDR: # Elevation-Distance Relationship
                 plt.box(True)
                 plt.show(block = False)
                 plt.pause(0.01)
+                if isinstance(pltFlag, str):
+                    plt.savefig(pltFlag, dpi=300, bbox_inches='tight')
+                else:
+                    plt.savefig('EDR_median_on.png', dpi=300, bbox_inches='tight')
                 # plt.close()
+
+            if drawFlag:
+                plt.plot(bin_pts_mid_s, Q2, drawFlag + '.')
+                # Plot the fit and extrapolations
+                plt.plot(dd_in, z_in, drawFlag + '-')
+                plt.plot(dd_up, z_up, drawFlag + '--')
+                plt.plot(dd_do, z_do, drawFlag + '--')
+                plt.plot([0, dd_max], [z_in[0], z_in[-1]], drawFlag + 'o', markersize=6)
 
             ss = np.concatenate([dd_up, dd_in, dd_do])
             zz = np.concatenate([z_up, z_in, z_do])
             fitting_s_z = np.vstack((ss, zz)).T
             return fitting_s_z
         
-    def medianFilter_off(self, ds, outlength, pltFlag = False):    
+    def medianFilter_off(self, ds, outlength, pltFlag = False, drawFlag = False):    
         
         dd_max = np.max(self.s_flaten)
         dd_in = np.arange(0, dd_max + ds, ds)
@@ -106,7 +120,15 @@ class EDR: # Elevation-Distance Relationship
                 plt.box(True)
                 plt.show(block = False)
                 plt.pause(0.01)
-                # plt.close()
+                if isinstance(pltFlag, str):
+                    plt.savefig(pltFlag, dpi=300, bbox_inches='tight')
+                else:
+                    plt.savefig('EDR_median_off.png', dpi=300, bbox_inches='tight')
+            if drawFlag:
+                plt.plot(dd_in, z_in, drawFlag + '-')
+                plt.plot(dd_up, z_up, drawFlag + '--')
+                plt.plot(dd_do, z_do, drawFlag + '--')
+                plt.plot([0, dd_max], [z_in[0], z_in[-1]], drawFlag + 'o', markersize=6)
 
 
             ss = np.concatenate([dd_up, dd_in, dd_do])

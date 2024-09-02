@@ -82,12 +82,13 @@ def create_environment(polygonX, polygonY):
             raise ValueError("A polygon must have at least 3 vertices.")
         
         # Create vis.Point objects for each vertex of the polygon
-        points = [vis.Point(x, y) for x, y in zip(polygonX[i][:-1], polygonY[i][:-1])]
-        
+        points = [vis.Point(x, y) for x, y in zip(polygonX[i][1:], polygonY[i][1:])]
         # Create the outer boundary polygon, ensuring it is counter-clockwise
         polygon = vis.Polygon(points)
         polygonAll.append(polygon)
-
+    
+    # polygonAll.append(vis.Polygon([vis.Point(0,0),vis.Point(100,0),vis.Point(0,100)]))
+    # polygonAll.append(vis.Polygon([vis.Point(1000,1100),vis.Point(1100,1000),vis.Point(1000,1000)]))
     return vis.Environment(polygonAll)
 
 def visi_polygon(polygonX, polygonY, observeX, observeY, epsilon=1e-8, snap_dist=0.2):
@@ -113,7 +114,7 @@ def visi_polygon(polygonX, polygonY, observeX, observeY, epsilon=1e-8, snap_dist
     """
 
     env = create_environment(polygonX, polygonY) 
-
+    # print('Environment is valid : ',env.is_valid(epsilon))
     # Define the observer point
     observer = vis.Point(observeX, observeY)
     
@@ -284,18 +285,32 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
 
             # apex_zMesh = interp2d(yApex, xApex, yMesh[:, 0], xMesh[0, :], zMesh)
             # apex_zCone = interp2d(yApex, xApex, yMesh[:, 0], xMesh[0, :], zCone)
-            contour_coords = find_contour_coordinates(xMesh, yMesh, zCone - zMesh, 0)
+            contour_coords = find_contour_coordinates(xMesh, yMesh, zCone - zMesh, 1e-6)
             zCone_copy = zCone.copy()
-            n_nodes = len(contour_coords[0])
+            
+            # Initialize variables to track the polygon with the most vertices
+            max_vertices = 0
+            index_of_max = -1
 
-           
+            # Iterate through the list of boundaries
+            for i, polygon in enumerate(contour_coords):
+                num_vertices = len(polygon)
+                if num_vertices > max_vertices:
+                    max_vertices = num_vertices
+                    index_of_max = i
+            if index_of_max<0:
+                n_nodes = 0
+            else:
+                n_nodes = len(contour_coords[index_of_max])
+        
             if n_nodes > 5:  # Ignore the apex whose impact is too small
                 xContour = [contour_coords[i][:,0] for i in range(len(contour_coords))]
-                yContour = [contour_coords[i][:,1] for i in range(len(contour_coords))]
+                yContour = [contour_coords[i][:,1] for i in range(len(contour_coords))]             
 
-                xVisi, yVisi, xChildApex, yChildApex, _, _, visi_in_out = visi_polygon(xContour, yContour, xApex, yApex, snap_dist = max(dxMesh,dyMesh)*np.sqrt(2))
+                xVisi, yVisi, xChildApex, yChildApex, xApex_, yApex_, visi_in_out = visi_polygon(xContour, yContour, xApex, yApex, snap_dist = max(dxMesh,dyMesh)*np.sqrt(2))
+                visi_in_out_2,visi_in_out_3 = inpoly2(np.array([[xApex_, yApex_]]), contour_coords[index_of_max])
 
-                if len(xVisi) > 5 and visi_in_out:  # Ignore the apex whose impact is too small
+                if len(xVisi) > 5 and (visi_in_out or (visi_in_out_3[0] or visi_in_out_2[0])):  # Ignore the apex whose impact is too small
                     if options['saveVisPolygon']:
                         D_Visi = np.sqrt((xVisi - xApex) ** 2 + (yVisi - yApex) ** 2)
                         zVisi = cone_function(zApex, D_Visi, {
@@ -310,7 +325,6 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
 
                     # Update fan surface to the visible sector occluded by boundary surface and other fan sectors
                     xyVisi = [[xVisi[i], yVisi[i]] for i in range(len(xVisi))]
-                    
                     isVisible,_ = inpoly2(np.column_stack((xMesh.flatten(), yMesh.flatten())), xyVisi)
                     isVisible = isVisible.reshape(nr, nc)
 
