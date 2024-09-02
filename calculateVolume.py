@@ -3,7 +3,6 @@ sys.path.append('src/')
 from SPM import SPM
 from EDR import EDR
 import gis_utils
-import reconstruct_fantopo
 
 tiff_before = r"D:\YuanHungCHIU\c_Data\LaonongDEM_allTime\dem20231124_nobridge_copy.tif"
 tiff_after = r"D:\YuanHungCHIU\c_Data\LaonongDEM_allTime\20240801@all\2024Aug02_1m_OH_all_align_merge_small.tif"

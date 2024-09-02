@@ -6,15 +6,16 @@ gdal.UseExceptions()
 
 def read_geotiff(file_path):
     """
-    Reads a GeoTIFF file and returns the xMesh, yMesh, and zMesh.
+    Reads a GeoTIFF file and returns the mesh grids and elevation data.
 
     Parameters:
-        file_path (str): Path to the GeoTIFF file.
+        file_path (str): The path to the GeoTIFF file.
 
     Returns:
-        xMesh (numpy.ndarray): The x-coordinates of the mesh.
-        yMesh (numpy.ndarray): The y-coordinates of the mesh.
-        zMesh (numpy.ndarray): The elevation data.
+        tuple:
+            - xMesh (numpy.ndarray): 2D array of X-coordinates.
+            - yMesh (numpy.ndarray): 2D array of Y-coordinates.
+            - zMesh (numpy.ndarray): 2D array of elevation data.
     """
     dataset = gdal.Open(file_path)
     zMesh = dataset.GetRasterBand(1).ReadAsArray()
@@ -248,7 +249,21 @@ def get_gdalinfo(filepath):
 
 
 
-def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_path=None, output_resampled_path = 'pre_resample.tif', pltFlag = 0):
+def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_path=None, output_resampled_path = 'pre_resample.tif', pltFlag = 0, colorBarStr = None):
+    """
+    Calculates the volume difference between two GeoTIFF files within an optional polygon mask, with optional resampling and visualization.
+
+    Parameters:
+        pre_tiff (str): Path to the pre-event GeoTIFF file.
+        post_tiff (str): Path to the post-event GeoTIFF file.
+        shapefile_path (str, optional): Path to the shapefile for masking the area of interest.
+        output_resampled_path (str, optional): Path to save the resampled pre-event GeoTIFF. Default is 'pre_resample.tif'.
+        pltFlag (int, optional): Flag to plot the Difference of DEM (DoD) map. Default is 0 (no plot).
+
+    Returns:
+        float: The calculated volume difference within the specified area.
+    """
+
     debug = 0
     if debug:
         pre_tiff_info = get_gdalinfo(pre_tiff)  # Replace with your actual filename
@@ -270,22 +285,24 @@ def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_pa
     data2 = band2.ReadAsArray()
     geo_transform2 = ds2.GetGeoTransform()
 
+    if geo_transform1[1]>0:
+        xmin1 = geo_transform1[0]
+        xmax1 = geo_transform1[0] + geo_transform1[1] * data1.shape[1]
+    else:
+        xmax1 = geo_transform1[0]
+        xmin1 = geo_transform1[0] + geo_transform1[1] * data1.shape[1]            
+
+    if geo_transform1[5]<0:
+        ymin1 = geo_transform1[3] + geo_transform1[5] * data1.shape[0]
+        ymax1 = geo_transform1[3]
+    else:
+        ymax1 = geo_transform1[3] + geo_transform1[5] * data1.shape[0]
+        ymin1 = geo_transform1[3]
+
     # Resample ds2 to match ds1 if necessary
     if geo_transform1 != geo_transform2:
         print('Resample pre-event tif to match post-event tif is necessary')
-        if geo_transform1[1]>0:
-            xmin1 = geo_transform1[0]
-            xmax1 = geo_transform1[0] + geo_transform1[1] * data1.shape[1]
-        else:
-            xmax1 = geo_transform1[0]
-            xmin1 = geo_transform1[0] + geo_transform1[1] * data1.shape[1]            
 
-        if geo_transform1[5]<0:
-            ymin1 = geo_transform1[3] + geo_transform1[5] * data1.shape[0]
-            ymax1 = geo_transform1[3]
-        else:
-            ymax1 = geo_transform1[3] + geo_transform1[5] * data1.shape[0]
-            ymin1 = geo_transform1[3]
         
         ds2_resampled = gdal.Warp('', ds2, format='MEM',
                                 xRes=geo_transform1[1], yRes=geo_transform1[5],
@@ -334,13 +351,14 @@ def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_pa
 
     # Plot the DoD map if pltFlag is set to 1
     if pltFlag == 1:
-        plt.figure(figsize=(10, 8))
-        plt.imshow(difference, cmap='RdBu_r', vmin=-np.nanmax(abs(difference)), vmax=np.nanmax(abs(difference)))
-        plt.colorbar(label='Elevation Difference (m)')
+        plt.imshow(difference, extent= (xmin1, xmax1, ymin1, ymax1), cmap='RdBu_r', vmin=-np.nanmax(abs(difference)), vmax=np.nanmax(abs(difference)))
+        if colorBarStr is None:
+            plt.colorbar(label='Elevation Difference (m)')
+        else:
+            plt.colorbar(label=colorBarStr)
         plt.title('DEM of Differences (DoD) Map')
-        plt.xlabel('X Coordinate')
-        plt.ylabel('Y Coordinate')
-        plt.show()
+        plt.xlabel('Easting (m)')
+        plt.ylabel('Northing (m)')
 
     # Clean up
     ds1 = None
@@ -349,3 +367,5 @@ def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_pa
         ds2_resampled = None
 
     return volume_difference
+
+
