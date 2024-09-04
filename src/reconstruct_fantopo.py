@@ -2,8 +2,9 @@ import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 from scipy.interpolate import RegularGridInterpolator, interp1d
 import fanTopo
-from inpoly_cython import inpoly2
 import gis_utils
+import matplotlib.pyplot as plt
+from osgeo import gdal, ogr
 
 # Function to simulate and calculate volume
 def simulate_height_volume(params):
@@ -77,10 +78,8 @@ def fanTopoSimVolumeMask(interpV, minMaxInitialGuessHeightVolume, xMesh, yMesh, 
             'caseName': 'myProfile',
             'dz_interpM': [dz_profile],
             'dispflag':debug
-        })
+            })
             
-            zMesh_sim = np.copy(zTopo[0])
-            zMesh_sim[np.isnan(zMesh_sim)] = zMesh[np.isnan(zMesh_sim)]
             dod = zTopo[0] - zMesh
             dod[~volMask] = np.nan
             
@@ -103,6 +102,7 @@ def fanTopoSimVolumeMask(interpV, minMaxInitialGuessHeightVolume, xMesh, yMesh, 
     return zTopo[0], heightAG_Volume_All
 
 
+
 def reconstruct_fan_surface(topo_pre_event, xApex, yApex, volume_expected, guessHeightAboveGround_top, guessHeightAboveGround_bottom, dz_profile, fanBoundarySHP=None, tol=0.03, debug=False):
     
     print(f'The expected simulated fan volume is {volume_expected:.2f} cubic meters (L^3) within the defined boundary.')
@@ -112,14 +112,7 @@ def reconstruct_fan_surface(topo_pre_event, xApex, yApex, volume_expected, guess
 
     # Handle fan boundary if provided
     if fanBoundarySHP is not None:
-        fan_boundary_x, fan_boundary_y = gis_utils.read_shapefile_boundary(fanBoundarySHP)
-        nan_array = np.array([np.nan])
-        fan_boundary_x = np.concatenate([np.concatenate([arr, nan_array]) for arr in fan_boundary_x])[:-1]
-        fan_boundary_y = np.concatenate([np.concatenate([arr, nan_array]) for arr in fan_boundary_y])[:-1]
-        volumeCalculateExtentXY = np.column_stack((fan_boundary_x, fan_boundary_y))
-
-        volumeCalculateMask,_ = inpoly2(np.column_stack((xMesh.flatten(), yMesh.flatten())), volumeCalculateExtentXY)
-        volumeCalculateMask = volumeCalculateMask.reshape(xMesh.shape)
+        volumeCalculateMask = gis_utils.create_mask_from_shapefile(topo_pre_event, fanBoundarySHP)
     else:
         volumeCalculateExtentXY = None
         volumeCalculateMask = np.ones_like(zMesh, dtype=bool)

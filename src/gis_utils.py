@@ -247,6 +247,37 @@ def get_gdalinfo(filepath):
   # Return the decoded output
   return output.decode('utf-8')
 
+def create_mask_from_shapefile(geotiff_path, shapefile_path, burn_value=1):
+    # Open the GeoTIFF to get geotransformation and projection
+    geotiff = gdal.Open(geotiff_path)
+    geo_transform = geotiff.GetGeoTransform()
+    projection = geotiff.GetProjection()
+    x_size = geotiff.RasterXSize
+    y_size = geotiff.RasterYSize
+    
+    # Create an empty raster for the mask (same size as the GeoTIFF)
+    mem_driver = gdal.GetDriverByName('MEM')  # In-memory raster
+    mask_raster = mem_driver.Create('', x_size, y_size, 1, gdal.GDT_Byte)
+    mask_raster.SetGeoTransform(geo_transform)
+    mask_raster.SetProjection(projection)
+
+    # Open the shapefile
+    shapefile = ogr.Open(shapefile_path)
+    layer = shapefile.GetLayer()
+
+    # Rasterize the shapefile into the mask raster
+    gdal.RasterizeLayer(mask_raster, [1], layer, burn_values=[burn_value])
+
+    # Read the mask as a numpy array
+    mask_band = mask_raster.GetRasterBand(1)
+    mask_array = mask_band.ReadAsArray()
+
+    # Cleanup
+    geotiff = None
+    shapefile = None
+    mask_raster = None
+
+    return mask_array
 
 
 def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_path=None, output_resampled_path = 'pre_resample.tif', pltFlag = 0, colorBarStr = None):
