@@ -43,7 +43,7 @@ for i in range(len(zTopo)):
     plt.savefig('results/fill_fanTopo/' + title_str[i] + '_fig2.png', dpi=300)
 
     plt_utils.plot_hillshade(xMesh, yMesh, zMapMesh, azdeg=180, altdeg=45, vert_exag=5)
-    gis_utils.calculate_volume_difference_within_polygon(zPost, zTopo[i], output_resampled_path=None, pltFlag=True, colorBarStr='z_sim - z_field')
+    gis_utils.calculate_volume_difference_within_polygon(zPost, zTopo[i], output_resampled_path=None, pltFlag=True, colorBarStr='z_sim - z_field', vmin = -20, vmax = 20)
     plt.contour(xMesh, yMesh, zMapMesh, levels=levels, colors='k', linewidths=0.7)
     plt_utils.plot_polygon_boundary_gdal(fanBoundary[0])
     plt.title(title_str[i] + ' Simulation Error')

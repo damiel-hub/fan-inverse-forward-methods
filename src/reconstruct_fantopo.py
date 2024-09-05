@@ -3,8 +3,6 @@ from concurrent.futures import ProcessPoolExecutor
 from scipy.interpolate import RegularGridInterpolator, interp1d
 import fanTopo
 import gis_utils
-import matplotlib.pyplot as plt
-from osgeo import gdal, ogr
 
 # Function to simulate and calculate volume
 def simulate_height_volume(params):
@@ -54,6 +52,7 @@ def fanTopoSimVolumeMask(interpV, minMaxInitialGuessHeightVolume, xMesh, yMesh, 
     else:
         initialFlag = True
 
+    prefanVolume = -9999
     while interpV.size > 0:
         # Remove negative volumes
         interpV = interpV[interpV >= 0]
@@ -98,6 +97,10 @@ def fanTopoSimVolumeMask(interpV, minMaxInitialGuessHeightVolume, xMesh, yMesh, 
             
             if abs(fanVolume - interpV[i]) <= interpV[i] * tol:
                 interpV[i] = -1  # Mark as processed
+            elif round(prefanVolume) == round(fanVolume):
+                print(f"The tolerance of {tol} could not be achieved. The resulting tolerance is {abs(fanVolume - interpV[i]) / interpV[i]:.6f}.")
+                interpV[i] = -1
+            prefanVolume = fanVolume
 
     return zTopo[0], heightAG_Volume_All
 
@@ -112,10 +115,9 @@ def reconstruct_fan_surface(topo_pre_event, xApex, yApex, volume_expected, guess
 
     # Handle fan boundary if provided
     if fanBoundarySHP is not None:
-        volumeCalculateMask = gis_utils.create_mask_from_shapefile(topo_pre_event, fanBoundarySHP)
+        volumeCalculateMask = gis_utils.create_mask_from_shapefile(topo_pre_event, fanBoundarySHP).astype(bool)
     else:
-        volumeCalculateExtentXY = None
-        volumeCalculateMask = np.ones_like(zMesh, dtype=bool)
+        volumeCalculateMask = np.ones_like(zMesh, dtype=bool).astype(bool)
     
     # Simulation Process
     heights = [guessHeightAboveGround_bottom, guessHeightAboveGround_top]

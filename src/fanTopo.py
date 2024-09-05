@@ -8,9 +8,9 @@ from cone_function import cone_function
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 import gis_utils
-from scipy.spatial import Delaunay
-from shapely.geometry import Polygon
-from shapely.vectorized import contains
+from skimage import measure
+
+
 
 def fill_nans_with_nearest(zTopo):
     """
@@ -42,34 +42,28 @@ def fill_nans_with_nearest(zTopo):
 
 
 def find_contour_coordinates(xMesh, yMesh, zMesh, level):
-    """
-    Find contour coordinates at a specified level using matplotlib.
+    # Find contours at the specified level
+    contours = measure.find_contours(zMesh, level)
     
-    Parameters:
-    xMesh (numpy.ndarray): 2D array of x-coordinates
-    yMesh (numpy.ndarray): 2D array of y-coordinates
-    zMesh (numpy.ndarray): 2D array of z-values
-    level (float): The level at which to find contours
-    combine (bool): If True, combine all contours into a single array
+    contour_coords = []
     
-    Returns:
-    list or numpy.ndarray: List of contour arrays, or a single combined array if combine=True
-    """
-    # Create a new figure (it won't be displayed)
-    fig, ax = plt.subplots()
-    
-    # Generate contour
-    contour_set = ax.contour(xMesh, yMesh, zMesh, levels=[level])
-    
-    # Extract contour paths
-    contours = contour_set.collections[0].get_paths()
-    
-    # Convert to list of numpy arrays
-    contour_coords = [contour.vertices for contour in contours]
-    
-    # Close the figure to free up memory
-    plt.close(fig)
+    # Define the grid index vectors
+    x_index = np.arange(xMesh.shape[1])  # Assuming xMesh varies across columns
+    y_index = np.arange(yMesh.shape[0])  # Assuming yMesh varies across rows
 
+    for contour in contours:
+        # Indices from the contours (rows, cols) in zMesh
+        row_indices = contour[:, 0]
+        col_indices = contour[:, 1]
+
+        # Interpolate x and y coordinates from indices
+        x_coords = np.interp(col_indices, x_index, xMesh[0, :])  # Interpolating x along the column direction
+        y_coords = np.interp(row_indices, y_index, yMesh[:, 0])  # Interpolating y along the row direction
+
+        # Stack x and y coordinates to form the contour coordinate array
+        coords = np.column_stack((x_coords, y_coords))
+        contour_coords.append(coords)
+    
     return contour_coords
 
 def create_environment(polygonX, polygonY):
@@ -185,37 +179,6 @@ def visi_polygon_shortest_path(polygonX, polygonY, observeX, observeY, endX, end
     
     return shortest_path_length
 
-def create_mask_delaunay(xMesh, yMesh, polygonXY):
-    # Create a Delaunay triangulation of the polygon
-    delaunay = Delaunay(polygonXY)
-    
-    # Stack the xMesh and yMesh coordinates to create a (N, 2) array of points
-    points = np.vstack((xMesh.ravel(), yMesh.ravel())).T
-    
-    # Use the Delaunay triangulation to check which points are inside the polygon
-    mask = delaunay.find_simplex(points) >= 0
-    
-    # Reshape the mask back to the shape of xMesh and yMesh
-    return mask.reshape(xMesh.shape)
-
-def create_mask_delaunay(pointsXY, polygonXY, nr, nc):
-    # Create a Delaunay triangulation of the polygon
-    delaunay = Delaunay(polygonXY)
-    
-    # Use the Delaunay triangulation to check which points are inside the polygon
-    mask = delaunay.find_simplex(pointsXY) >= 0
-    
-    # Reshape the mask back to the shape of xMesh and yMesh
-    return mask.reshape((nr, nc))
-
-def create_mask_raster(xMesh, yMesh, polygonXY):
-    # Create the polygon object
-    polygon = Polygon(polygonXY)
-    
-    # Use the shapely vectorized contains function to quickly check which points are inside the polygon
-    mask = contains(polygon, xMesh, yMesh)
-    
-    return mask
 
 def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
     """
@@ -358,10 +321,10 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
 
                     # Update fan surface to the visible sector occluded by boundary surface and other fan sectors
                     xyVisi = [[xVisi[i], yVisi[i]] for i in range(len(xVisi))]
-                    # isVisible,_ = inpoly2(np.column_stack((xMesh.flatten(), yMesh.flatten())), xyVisi)
-                    # isVisible = isVisible.reshape(nr, nc)
-                    isVisible = create_mask_delaunay(pointsXY, xyVisi, nr, nc)
-                    # isVisible = create_mask_raster(xMesh, yMesh, xyVisi)
+                    isVisible,_ = inpoly2(np.column_stack((xMesh.flatten(), yMesh.flatten())), xyVisi)
+                    isVisible = isVisible.reshape(nr, nc)
+                    
+
                     
                     thetaMesh_temp = np.arctan2(xMesh - xApex, yMesh - yApex)
                     mask = (isVisible & (zCone > zTopo)) | (isVisible & np.isnan(zTopo))

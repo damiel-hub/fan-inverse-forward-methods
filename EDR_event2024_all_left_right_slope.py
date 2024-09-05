@@ -1,15 +1,10 @@
 import sys
-import numpy as np
-from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
-import time
 import matplotlib.pyplot as plt
 
 sys.path.append('src/')
 from SPM import SPM
 from EDR import EDR
-import gis_utils
-import reconstruct_fantopo
 
 if __name__ == "__main__":
 

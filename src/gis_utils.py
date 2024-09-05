@@ -280,7 +280,7 @@ def create_mask_from_shapefile(geotiff_path, shapefile_path, burn_value=1):
     return mask_array
 
 
-def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_path=None, output_resampled_path = 'pre_resample.tif', pltFlag = 0, colorBarStr = None):
+def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_path=None, output_resampled_path = 'pre_resample.tif', pltFlag = 0, colorBarStr = None, vmin = None, vmax = None):
     """
     Calculates the volume difference between two GeoTIFF files within an optional polygon mask, with optional resampling and visualization.
 
@@ -290,6 +290,8 @@ def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_pa
         shapefile_path (str, optional): Path to the shapefile for masking the area of interest.
         output_resampled_path (str, optional): Path to save the resampled pre-event GeoTIFF. Default is 'pre_resample.tif'.
         pltFlag (int, optional): Flag to plot the Difference of DEM (DoD) map. Default is 0 (no plot).
+        vmin (float, optional): Colormap cmin
+        vmax (float, optional): Colormap cmax
 
     Returns:
         float: The calculated volume difference within the specified area.
@@ -382,7 +384,10 @@ def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_pa
 
     # Plot the DoD map if pltFlag is set to 1
     if pltFlag == 1:
-        plt.imshow(difference, extent= (xmin1, xmax1, ymin1, ymax1), cmap='RdBu_r', vmin=-np.nanmax(abs(difference)), vmax=np.nanmax(abs(difference)))
+        if vmin is not None and vmax is not None:
+            plt.imshow(difference, extent= (xmin1, xmax1, ymin1, ymax1), cmap='RdBu_r',vmin=vmin, vmax=vmax)
+        else:
+            plt.imshow(difference, extent= (xmin1, xmax1, ymin1, ymax1), cmap='RdBu_r', vmin=-np.nanmax(abs(difference)), vmax=np.nanmax(abs(difference)))
         if colorBarStr is None:
             plt.colorbar(label='Elevation Difference (m)')
         else:
