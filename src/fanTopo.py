@@ -8,7 +8,9 @@ from cone_function import cone_function
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 import gis_utils
-
+from scipy.spatial import Delaunay
+from shapely.geometry import Polygon
+from shapely.vectorized import contains
 
 def fill_nans_with_nearest(zTopo):
     """
@@ -183,7 +185,37 @@ def visi_polygon_shortest_path(polygonX, polygonY, observeX, observeY, endX, end
     
     return shortest_path_length
 
+def create_mask_delaunay(xMesh, yMesh, polygonXY):
+    # Create a Delaunay triangulation of the polygon
+    delaunay = Delaunay(polygonXY)
+    
+    # Stack the xMesh and yMesh coordinates to create a (N, 2) array of points
+    points = np.vstack((xMesh.ravel(), yMesh.ravel())).T
+    
+    # Use the Delaunay triangulation to check which points are inside the polygon
+    mask = delaunay.find_simplex(points) >= 0
+    
+    # Reshape the mask back to the shape of xMesh and yMesh
+    return mask.reshape(xMesh.shape)
 
+def create_mask_delaunay(pointsXY, polygonXY, nr, nc):
+    # Create a Delaunay triangulation of the polygon
+    delaunay = Delaunay(polygonXY)
+    
+    # Use the Delaunay triangulation to check which points are inside the polygon
+    mask = delaunay.find_simplex(pointsXY) >= 0
+    
+    # Reshape the mask back to the shape of xMesh and yMesh
+    return mask.reshape((nr, nc))
+
+def create_mask_raster(xMesh, yMesh, polygonXY):
+    # Create the polygon object
+    polygon = Polygon(polygonXY)
+    
+    # Use the shapely vectorized contains function to quickly check which points are inside the polygon
+    mask = contains(polygon, xMesh, yMesh)
+    
+    return mask
 
 def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
     """
@@ -250,6 +282,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
 
     # Get the size of the new zMesh
     nr, nc = zMesh.shape
+    pointsXY = np.vstack((xMesh.ravel(), yMesh.ravel())).T
 
     # Initialize topography and sorted apex list
     xyzkApexAll = []
@@ -325,9 +358,11 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
 
                     # Update fan surface to the visible sector occluded by boundary surface and other fan sectors
                     xyVisi = [[xVisi[i], yVisi[i]] for i in range(len(xVisi))]
-                    isVisible,_ = inpoly2(np.column_stack((xMesh.flatten(), yMesh.flatten())), xyVisi)
-                    isVisible = isVisible.reshape(nr, nc)
-
+                    # isVisible,_ = inpoly2(np.column_stack((xMesh.flatten(), yMesh.flatten())), xyVisi)
+                    # isVisible = isVisible.reshape(nr, nc)
+                    isVisible = create_mask_delaunay(pointsXY, xyVisi, nr, nc)
+                    # isVisible = create_mask_raster(xMesh, yMesh, xyVisi)
+                    
                     thetaMesh_temp = np.arctan2(xMesh - xApex, yMesh - yApex)
                     mask = (isVisible & (zCone > zTopo)) | (isVisible & np.isnan(zTopo))
                     thetaMesh[mask] = thetaMesh_temp[mask]
