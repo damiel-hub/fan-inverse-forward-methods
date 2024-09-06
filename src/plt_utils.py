@@ -2,12 +2,17 @@ from osgeo import ogr
 import matplotlib.pyplot as plt
 from matplotlib.colors import LightSource
 
-def plot_polygon_boundary_gdal(shapefile_path):
+import matplotlib.pyplot as plt
+from osgeo import ogr
+
+def plot_polygon_boundary_gdal(shapefile_path, exterior_color='b', interior_color='r'):
     """
     Reads a shapefile using GDAL and plots the boundary of the polygon(s) it contains.
 
     Parameters:
         shapefile_path (str): Path to the shapefile.
+        exterior_color (str): Color for the exterior polygon boundary.
+        interior_color (str): Color for the interior polygon boundaries (holes).
 
     Returns:
         None
@@ -23,19 +28,21 @@ def plot_polygon_boundary_gdal(shapefile_path):
         
         # Check if the geometry is a polygon or multipolygon
         if geom.GetGeometryType() == ogr.wkbPolygon:
-            plot_polygon(geom)
+            plot_polygon(geom, exterior_color, interior_color)
         elif geom.GetGeometryType() == ogr.wkbMultiPolygon:
             for i in range(geom.GetGeometryCount()):
                 polygon = geom.GetGeometryRef(i)
-                plot_polygon(polygon)
+                plot_polygon(polygon, exterior_color, interior_color)
 
 
-def plot_polygon(polygon):
+def plot_polygon(polygon, exterior_color, interior_color):
     """
     Plots a polygon's boundary, including interior rings (holes).
 
     Parameters:
         polygon (ogr.Geometry): A polygon geometry.
+        exterior_color (str): Color for the exterior polygon boundary.
+        interior_color (str): Color for the interior polygon boundaries (holes).
 
     Returns:
         None
@@ -44,7 +51,7 @@ def plot_polygon(polygon):
     exterior_ring = polygon.GetGeometryRef(0)
     exterior_points = exterior_ring.GetPoints()
     x_exterior, y_exterior = zip(*exterior_points)
-    plt.plot(x_exterior, y_exterior, 'b-')  # 'b-' for blue solid line
+    plt.plot(x_exterior, y_exterior, color=exterior_color, linestyle='-', label='Exterior')
 
     # Plot interior rings (holes) if any
     num_interior_rings = polygon.GetGeometryCount() - 1
@@ -52,7 +59,9 @@ def plot_polygon(polygon):
         interior_ring = polygon.GetGeometryRef(i)
         interior_points = interior_ring.GetPoints()
         x_interior, y_interior = zip(*interior_points)
-        plt.plot(x_interior, y_interior, 'b-')  # 'r-' for red solid line (or any color you prefer)
+        plt.plot(x_interior, y_interior, color=interior_color, linestyle='-', label='Interior')
+
+
 
 
 

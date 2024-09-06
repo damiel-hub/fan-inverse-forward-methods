@@ -11,6 +11,7 @@ zTopo = [r"results\zTopo_2024_all.tif",
 fanBoundary = [r"datasets\raw\shape\PT2024.shp",
                r"datasets\raw\shape\PT2024_left.shp",
                r"datasets\raw\shape\PT2024_right.shp"]
+color_sequence = ['m', 'c', 'y']
 
 title_str = ['All', 'Left', 'Right']
 zInit = r"datasets\raw\tif\topo_10m_PuTunPuNas_pre_2024_min_base2024.tif"
@@ -37,15 +38,15 @@ for i in range(len(zTopo)):
 
     plt_utils.plot_hillshade(xMesh, yMesh, zPostMesh, azdeg=180, altdeg=45, vert_exag=5)
     plt.contour(xMesh, yMesh, zPostMesh, levels=levels, colors='k', linewidths=0.7)
-    plt_utils.plot_polygon_boundary_gdal(fanBoundary[i])
-    plt.axis([226905, 229635, 2564093, 2567691])
+    plt_utils.plot_polygon_boundary_gdal(fanBoundary[i], exterior_color=color_sequence[i], interior_color=color_sequence[i])
+    plt.axis([226905, 229635, 2564700, 2567200])
     plt.colorbar(label='Hillshade intensity')
     plt.savefig('results/fill_fanTopo/' + title_str[i] + '_fig2.png', dpi=300)
 
     plt_utils.plot_hillshade(xMesh, yMesh, zMapMesh, azdeg=180, altdeg=45, vert_exag=5)
     gis_utils.calculate_volume_difference_within_polygon(zPost, zTopo[i], output_resampled_path=None, pltFlag=True, colorBarStr='z_sim - z_field', vmin = -20, vmax = 20)
     plt.contour(xMesh, yMesh, zMapMesh, levels=levels, colors='k', linewidths=0.7)
-    plt_utils.plot_polygon_boundary_gdal(fanBoundary[0])
+    plt_utils.plot_polygon_boundary_gdal(fanBoundary[0], exterior_color='b', interior_color='b')
     plt.title(title_str[i] + ' Simulation Error')
     plt.axis([226905, 229635, 2564093, 2567691])
     plt.savefig('results/fill_fanTopo/' + title_str[i] + '_fig3.png', dpi=300)
