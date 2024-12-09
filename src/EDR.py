@@ -15,7 +15,7 @@ class EDR: # Elevation-Distance Relationship
         if drawFlag:
             plt.scatter(self.s_flaten, self.z_flaten, color='k', marker='.')
 
-    def medianFilter_on(self, bin_size, ds, outlength, pltFlag = False, drawFlag = False):
+    def medianFilter_on(self, bin_size, ds, outlength, pltFlag = False, drawFlag = 'b', return_fitting_coeff = False):
 
         # Define bins for s values
         bin_pts_s = np.arange(np.min(self.s_flaten), np.max(self.s_flaten) + bin_size, bin_size)
@@ -44,50 +44,52 @@ class EDR: # Elevation-Distance Relationship
         
         if len(bin_pts_mid_s) > 0:
             p = Polynomial.fit(bin_pts_mid_s, Q2, 2).convert().coef
-            a, b, c = p[2], p[1], p[0]
-            z_in = a * dd_in**2 + b * dd_in + c
+            L, S, P = p[2], p[1], p[0]
+            z_in = L * dd_in**2 + S * dd_in + P
 
             # Extrapolate for the upper and lower ranges
             dd_up = np.arange(-outlength, 0, ds)
-            z_up = b * dd_up + c
+            z_up = S * dd_up + P
             dd_do = np.arange(dd_in[-1] + ds, dd_in[-1] + ds + outlength, ds)
-            z_do = (2 * a * dd_max + b) * dd_do - a * dd_max**2 + c
+            z_do = (2 * L * dd_max + S) * dd_do - L * dd_max**2 + P
             
             if pltFlag:
                 # Plot the data
                 plt.figure()
                 plt.scatter(self.s_flaten, self.z_flaten, color='k', marker='.')
-                plt.plot(bin_pts_mid_s, Q2, 'b.')
-                # Plot the fit and extrapolations
-                plt.plot(dd_in, z_in, 'b-')
-                plt.plot(dd_up, z_up, 'b--')
-                plt.plot(dd_do, z_do, 'b--')
-                plt.plot([0, dd_max], [z_in[0], z_in[-1]], 'bo', markersize=6)
-                plt.xlabel('Shortest path distance to all data points, s (m)')
-                plt.ylabel('Elevation, z (m)')
-                plt.gca().set_aspect(5)
-                plt.grid(True)
-                plt.box(True)
-                plt.show(block = False)
-                plt.pause(0.01)
-                if isinstance(pltFlag, str):
-                    plt.savefig(pltFlag, dpi=300, bbox_inches='tight')
-                else:
-                    plt.savefig('EDR_median_on.png', dpi=300, bbox_inches='tight')
-                # plt.close()
-
-            if drawFlag:
                 plt.plot(bin_pts_mid_s, Q2, drawFlag + '.')
                 # Plot the fit and extrapolations
                 plt.plot(dd_in, z_in, drawFlag + '-')
                 plt.plot(dd_up, z_up, drawFlag + '--')
                 plt.plot(dd_do, z_do, drawFlag + '--')
                 plt.plot([0, dd_max], [z_in[0], z_in[-1]], drawFlag + 'o', markersize=6)
+                plt.xlabel('Shortest path distance to all data points, s (m)')
+                plt.ylabel('Elevation, z (m)')
+                plt.gca().set_aspect(5)
+                plt.grid(True)
+                plt.box(True)
+                if isinstance(pltFlag, str):
+                    plt.savefig(pltFlag, dpi=300, bbox_inches='tight')
+                else:
+                    plt.savefig('EDR_median_on.png', dpi=300, bbox_inches='tight')
+                plt.show(block = False)
+                plt.pause(0.01)
+                # plt.close()
 
             ss = np.concatenate([dd_up, dd_in, dd_do])
             zz = np.concatenate([z_up, z_in, z_do])
             fitting_s_z = np.vstack((ss, zz)).T
-            return fitting_s_z
+            if return_fitting_coeff:
+                z_hat = np.zeros_like(self.s_flaten)
+                z_hat[self.s_flaten<=0] = S*self.s_flaten[self.s_flaten<=0] + P
+                z_hat[(self.s_flaten > 0) & (self.s_flaten < dd_max)] = L*self.s_flaten[(self.s_flaten > 0) & (self.s_flaten < dd_max)]**2 + S*self.s_flaten[(self.s_flaten > 0) & (self.s_flaten < dd_max)] + P
+                z_hat[self.s_flaten>=dd_max] = (2*L*dd_max + S)*self.s_flaten[self.s_flaten>=dd_max] - L*dd_max**2 + P
+                RMSE = np.sqrt(np.sum((z_hat - self.z_flaten)**2)/z_hat.size)
+                slope = -L*dd_max - S
+                dimensionless_drop = L*dd_max/4
+                return fitting_s_z, slope, dimensionless_drop, RMSE
+            else:
+                return fitting_s_z
         
     def medianFilter_off(self, ds, outlength, pltFlag = False, drawFlag = False):    
         
@@ -96,14 +98,14 @@ class EDR: # Elevation-Distance Relationship
 
         if len(self.s_flaten) > 0:
             p = Polynomial.fit(self.s_flaten, self.z_flaten, 2).convert().coef
-            a, b, c = p[2], p[1], p[0]
-            z_in = a * dd_in**2 + b * dd_in + c
+            L, S, P = p[2], p[1], p[0]
+            z_in = L * dd_in**2 + S * dd_in + P
 
             # Extrapolate for the upper and lower ranges
             dd_up = np.arange(-outlength, 0, ds)
-            z_up = b * dd_up + c
+            z_up = S * dd_up + P
             dd_do = np.arange(dd_in[-1] + ds, dd_in[-1] + ds + outlength, ds)
-            z_do = (2 * a * dd_max + b) * dd_do - a * dd_max**2 + c
+            z_do = (2 * L * dd_max + S) * dd_do - L * dd_max**2 + P
             
             if pltFlag:
                 # Plot the fit and extrapolations

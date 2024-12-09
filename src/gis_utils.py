@@ -125,14 +125,17 @@ def clip_geotiff_with_shapefile(geotiff_path, shapefile_path, clipped_geotiff_pa
     # Extract the clipped raster data as a numpy array
     zMesh = clipped_ds.GetRasterBand(1).ReadAsArray()
     zMesh[zMesh == -9999] = np.nan
+    
     # Obtain geo-transform information and generate coordinate meshes
     transform = clipped_ds.GetGeoTransform()
     x_min, pixel_width, _, y_max, _, pixel_height = transform
     
-    xMesh, yMesh = np.meshgrid(
-        np.arange(x_min, x_min + clipped_ds.RasterXSize * pixel_width, pixel_width),
-        np.arange(y_max, y_max + clipped_ds.RasterYSize * pixel_height, pixel_height)
-    )
+    # Use np.linspace to generate coordinate arrays
+    xArray = np.linspace(x_min, x_min + (clipped_ds.RasterXSize - 1) * pixel_width, clipped_ds.RasterXSize)
+    yArray = np.linspace(y_max, y_max + (clipped_ds.RasterYSize - 1) * pixel_height, clipped_ds.RasterYSize)
+    
+    # Create mesh grids
+    xMesh, yMesh = np.meshgrid(xArray, yArray)
     
     # Return the coordinate meshes and raster data
     return xMesh, yMesh, zMesh

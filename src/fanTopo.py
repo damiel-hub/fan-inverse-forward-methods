@@ -239,6 +239,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
     xMesh_expanded = np.linspace(xMesh[0, 0] - dxMesh, xMesh[0, -1] + dxMesh, xMesh.shape[1] + 2)
     yMesh_expanded = np.linspace(yMesh[0, 0] - dyMesh, yMesh[-1, 0] + dyMesh, yMesh.shape[0] + 2)
     xMesh, yMesh = np.meshgrid(xMesh_expanded, yMesh_expanded)
+    
 
     # Create a new zMesh with high walls
     zMesh = np.pad(zMesh, pad_width=1, mode='constant', constant_values=zMax)
