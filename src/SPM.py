@@ -26,7 +26,7 @@ class SPM:
     def xyApex(self):
         return self.xApex, self.yApex
 
-    def within_boundary(self, pltFlag=False):
+    def within_boundary(self, pltFlag=False, debug = False):
         '''
             Process the shortest path map within the boundary.
         '''
@@ -45,7 +45,7 @@ class SPM:
         sTopo = fanTopo.fan_topo(self.xMesh_crop, self.yMesh_crop, wallMesh, [self.xApex], [self.yApex], [zApex_s], {
             'caseName': 'cone',
             'tanAlphaM': [1],
-            'dispflag': pltFlag
+            'dispflag': debug
         })
         
         # Calculate the shortest path distance map
@@ -57,7 +57,7 @@ class SPM:
             plt.pcolormesh(self.xMesh_crop, self.yMesh_crop, sMap, shading='auto')
             plt.colorbar(label='Shortest Path Distance (m)')
             plt.plot(self.xApex, self.yApex, 'r.', markersize=6)
-            plt.contour(self.xMesh_crop, self.yMesh_crop, sMap, levels=np.arange(0, np.nanargmax(sMap), 100), colors='k')
+            plt.contour(self.xMesh_crop, self.yMesh_crop, sMap, levels=np.arange(0, np.nanmax(sMap), 100), colors='k')
             plt.axis('equal')
             plt.title('Shortest Path Distance Map')
             plt.xlabel('Easting (m)')
