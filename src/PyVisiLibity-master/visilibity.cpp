@@ -2133,7 +2133,7 @@ namespace VisiLibity
   {
     //true  => data printed to terminal
     //false => silent
-    const bool PRINTING_DEBUG_DATA = true;
+    const bool PRINTING_DEBUG_DATA = false;
 
     //For now, just find one shortest path, later change this to a
     //vector to find all shortest paths (w/in epsilon).
@@ -3277,6 +3277,7 @@ namespace VisiLibity
 	    
 	    if( xing.size() > 0 ){
 	      k = Polar_Point( observer , xing.first() );
+        growing_vertices_.push_back(current_vertex); // Track growing vertices
 	    }
 	    else{ //Error contingency.
 	      k = current_vertex;
@@ -3412,6 +3413,7 @@ namespace VisiLibity
 
 	    //Push k-point onto the visibility polygon.
 	    vertices_.push_back(k);
+      growing_vertices_.push_back(current_vertex); // Track growing vertices
 	    chop_spikes_at_back(observer, epsilon);
 	  }
 
@@ -3455,6 +3457,7 @@ namespace VisiLibity
 		<< Polygon(vertices_) << std::endl
 		<< std::endl;      
     }
+    growing_vertices_ = Polygon(growing_vertices_);
 
   }
   Visibility_Polygon::Visibility_Polygon(const Point& observer,

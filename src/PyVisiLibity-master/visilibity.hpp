@@ -47,14 +47,14 @@ License along with VisiLibity.  If not, see <http://www.gnu.org/licenses/>.
 
 //Uncomment these lines when compiling under
 //Microsoft Visual Studio
-/*
+
 #include <limits>
 #define NAN std::numeric_limits<double>::quiet_NaN()
 #define INFINITY std::numeric_limits<double>::infinity()
 #define M_PI 3.141592653589793238462643
 #define and &&
 #define or ||
-*/
+
 
 #include <cmath>      //math functions in std namespace
 #include <vector>
@@ -1830,6 +1830,7 @@ namespace VisiLibity
   class Visibility_Polygon : public Polygon
   {
   public:
+
     //Constructors
     /// default to empty
     Visibility_Polygon() { }
@@ -1872,13 +1873,15 @@ namespace VisiLibity
     /// location of observer which induced the visibility polygon
     Point observer() const
     { return observer_; }
+    Polygon get_growing_vertices() const 
+    { return growing_vertices_; }
     //Mutators
   private:
     //ith entry of gap_edges is true iff the edge following ith vertex
     //is a gap edge (not solid).
     //std::vector<bool> gap_edges_;
     Point observer_;
-
+    Polygon growing_vertices_; // Modified by Yuan-Hung Damiel Chiu
     struct Polar_Edge
     {
       Polar_Point first;

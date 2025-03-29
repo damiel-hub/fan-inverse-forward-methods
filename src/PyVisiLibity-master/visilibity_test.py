@@ -48,7 +48,7 @@ def testVisilibity():
     walls = vis.Polygon([p1, p2, p3, p4])
     
     # Define the point of the "observer"
-    observer = vis.Point(235,400)
+    observer = vis.Point(235,600)
     
     # Uncomment the following line in order to create a cone polygon
     #walls = create_cone((observer.x(), observer.y()), 500, 270, 30, quality= 3)
@@ -169,11 +169,20 @@ def testVisilibity():
     # Necesary to generate the visibility polygon
     observer.snap_to_boundary_of(env, epsilon)
     observer.snap_to_vertices_of(env, epsilon)
-        
+
+    is_observer_inside_env = observer._in(env, epsilon)
+    print('Is the observer inside the environment? ' + str(is_observer_inside_env))
+
     # Obtein the visibility polygon of the 'observer' in the environmente
     # previously define
     isovist = vis.Visibility_Polygon(observer, env, epsilon)
-    
+
+    print('child vertices of the visibility polygon: ' + str(isovist.get_growing_vertices()))
+    print('Available methods and attributes for child vertices: ' + str(dir(isovist.get_growing_vertices())))
+    child_vertices_x, child_vertices_y = save_print(isovist.get_growing_vertices())
+    print('X-coordinates of child vertices: ' + str(child_vertices_x))
+    print('Y-coordinates of child vertices: ' + str(child_vertices_y))
+
     # Uncomment the following line to obtein the visibility polygon 
     # of 'end' in the environmente previously define
     #polygon_vis = vis.Visibility_Polygon(end, env, epsilon)
@@ -203,6 +212,7 @@ def testVisilibity():
     # from the last point to the first one
     point_x.append(isovist[0].x())
     point_y.append(isovist[0].y())    
+
 
     # Set the title
     p.title('VisiLibity Test')
@@ -240,15 +250,8 @@ def testVisilibity():
     
     # Plot the hole polygon with red color
     p.plot(hole4_x, hole4_y, 'r')
-    
-    # Example of a cone-shape polygon
-    cone_point = vis.Point(440,420)
-    cone = create_cone([cone_point.x(),cone_point.y()], 150, 0, 45, 3)
-    cone_x, cone_y = save_print(cone)
-    cone_x.append(cone_x[0])
-    cone_y.append(cone_y[0])
-    p.plot([cone_point.x()], [cone_point.y()], 'go')
-    p.plot(cone_x, cone_y)
+    for i in range(len(child_vertices_x)):
+        p.plot(child_vertices_x[i],child_vertices_y[i],'g*')
     
     # Show the plot
     p.show()
