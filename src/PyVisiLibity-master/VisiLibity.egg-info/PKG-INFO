@@ -1,9 +1,0 @@
-Metadata-Version: 2.1
-Name: VisiLibity
-Version: 1.0.10
-Summary: Python bindings of VisiLibity1
-Home-page: https://github.com/tsaoyu/PyVisiLibity
-Author: Yu Cao
-Author-email: yu.cao@soton.ac.uk
-License: LGPL
-License-File: LICENSE
