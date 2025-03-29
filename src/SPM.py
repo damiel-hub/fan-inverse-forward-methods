@@ -168,8 +168,8 @@ class SPM:
             plt.colorbar(scatter, label='Shortest Path Distance')
 
             # Add labels and title
-            plt.xlabel('Resampled E Total')
-            plt.ylabel('Resampled N Total')
+            plt.xlabel('Easting (m)')
+            plt.ylabel('Northing (m)')
             plt.title('Points Colored by Shortest Path Distance')
             plt.axis('equal')
 

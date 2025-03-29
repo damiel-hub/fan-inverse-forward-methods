@@ -3,7 +3,7 @@ from scipy import interpolate
 
 def cone_function(zApex, D, options={}):
     """
-    Constructs the z-values of a cone, concave, or custom profile surface based on the given options.
+    Calculate the elevation at distance D based on the given elevation-distance relationship options.
 
     Parameters:
     zApex : float or numpy array
@@ -21,9 +21,9 @@ def cone_function(zApex, D, options={}):
             'zApex0' : float
                 Reference elevation for concave and infinite cases.
             'tanInfinite' : float
-                Slope value for the infinite case.
-            'dz_interp' : numpy array
-                Interpolation values for the 'myProfile' case.
+                Asymptotic slope for the infinite case (Under development).
+            'sz_interp' : numpy array
+                Elevation-distance relationship for 'myProfile' case.
     
     Returns:
     zCone : float or numpy array
@@ -34,7 +34,7 @@ def cone_function(zApex, D, options={}):
     options.setdefault('K', np.nan)
     options.setdefault('zApex0', np.nan)
     options.setdefault('tanInfinite', np.nan)
-    options.setdefault('dz_interp', np.nan)
+    options.setdefault('sz_interp', np.nan)
 
     case_name = options['caseName']
 
@@ -50,14 +50,13 @@ def cone_function(zApex, D, options={}):
         zCone = zApex - (S - options['tanInfinite']) / options['K'] * (1 - np.exp(-options['K'] * D)) - options['tanInfinite'] * D
 
     elif case_name == 'myProfile':
-        dz_interp = options['dz_interp']
-        
-        interp_func = interpolate.interp1d(dz_interp[:, 1], dz_interp[:, 0], kind='linear', fill_value='extrapolate')
+        sz_interp = options['sz_interp']
+        interp_func = interpolate.interp1d(sz_interp[:, 1], sz_interp[:, 0], kind='linear', fill_value='extrapolate')
         dOffset = interp_func(zApex)
 
         
         if np.isscalar(zApex):
-            interp_func = interpolate.interp1d(dz_interp[:, 0] - dOffset, dz_interp[:, 1], kind='linear', fill_value='extrapolate')
+            interp_func = interpolate.interp1d(sz_interp[:, 0] - dOffset, sz_interp[:, 1], kind='linear', fill_value='extrapolate')
             zCone = interp_func(D)
             zCone = zCone.reshape(D.shape)
         else:
@@ -66,6 +65,6 @@ def cone_function(zApex, D, options={}):
                 if np.isnan(zApex[i]):
                     zCone[i] = np.nan
                 else:
-                    interp_func = interpolate.interp1d(dz_interp[:, 0] - dOffset[i], dz_interp[:, 1], kind='linear', fill_value='extrapolate')
+                    interp_func = interpolate.interp1d(sz_interp[:, 0] - dOffset[i], sz_interp[:, 1], kind='linear', fill_value='extrapolate')
                     zCone[i] = interp_func(D)
     return zCone

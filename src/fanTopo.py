@@ -184,36 +184,39 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
     """
     FAN_TOPO constructs the constant-slope or concave fan morphology, the apex positions, and source provenance.
 
-    Inputs:
-    xMesh - 2D numpy array of x-coordinates for mesh grid points.
-    yMesh - 2D numpy array of y-coordinates for mesh grid points.
-    zMesh - 2D numpy array of initial elevation values before fan aggradation.
-    xApexM - List or numpy array of x-coordinates for fan apex(es).
-    yApexM - List or numpy array of y-coordinates for fan apex(es).
-    zApexM - List or numpy array of z-coordinates (elevations) for fan apex(es).
-    options - Dictionary containing optional parameters:
-        'caseName' - (string) Type of fan morphology to generate (e.g., 'cone', 'concave', 'infinite', 'myProfile'). Default is 'cone'.
-        'tanAlphaM' - (list) Slope angles (tangents) for each apex, defining fan steepness. Default is NaN.
-        'KM' - (list) Concavity factors for each apex, controlling the curvature of the fan. Default is NaN.
-        'tanInfiniteM' - (list) Slope values for cases where the tangent approaches infinity. Default is NaN.
-        'dz_interpM' - (list of numpy arrays) Interpolation values for elevation, used in spline-based morphologies. Default is NaN.
-        'dispflag' - (boolean) Flag to display the generated topography (True for on, False for off). Default is False.
-        'saveVisPolygon' - (boolean) Flag to save visibility polygons (True for yes, False for no). Default is False.
+    Parameters:
+        xMesh (np.ndarray): 2D array of x-coordinates for mesh grid points.
+        yMesh (np.ndarray): 2D array of y-coordinates for mesh grid points.
+        zMesh (np.ndarray): 2D array of initial elevation values before fan aggradation.
+        xApexM (list or np.ndarray): List or array of x-coordinates for fan apex(es).
+        yApexM (list or np.ndarray): List or array of y-coordinates for fan apex(es).
+        zApexM (list or np.ndarray): List or array of z-coordinates (elevations) for fan apex(es).
+        options (dict, optional): 
+        
+    Dictionary containing optional parameters:
+        'caseName' (str): Type of fan morphology to generate (e.g., 'cone', 'concave', 'infinite', 'myProfile'). Default is 'cone'.
+        'tanAlphaM' (list): Slope angles (tangents) for each apex, defining fan steepness. Use in the 'cone', 'concave', and 'infinite' case.
+        'KM' (list): Concavity factors for each apex, controlling the curvature of the fan. Use in the 'concave' and 'infinite' case.
+        'tanInfiniteM' (list): Slope values for cases where the tangent approaches infinity. Use in the 'infinite' case.
+        'sz_interpM' (list of np.ndarray): Elevation-distance relationship extracted using inverse method. Use in the 'myProfile' case.
+        'dispflag' (bool): Flag to display the generated topography (True for on, False for off). Default is False.
+        'saveVisPolygon' (bool): Flag to save visibility polygons (True for yes, False for no). Default is False.
 
-    Outputs:
-    zTopo - 2D numpy array of final fan topography (elevation after aggradation).
-    kTopoAll - 2D numpy array with indices of the apex dominating each mesh grid point.
-    xyzkApexAll - List of apex coordinates and indices (including child apexes).
-    xyzVisPolygon - List of 3D coordinates (`x`, `y`, `z`) for visibility polygons.
-    xyVisPolygonAll - List of `x` and `y` coordinates for all visibility polygons.
-    thetaMesh - 2D numpy array of angular distribution relative to apex(es).
+    Returns:
+        tuple: A tuple containing:
+            - zTopo (np.ndarray): 2D array of final fan topography (elevation after aggradation).
+            - kTopoAll (np.ndarray): 2D array with indices of the apex dominating each mesh grid point.
+            - xyzkApexAll (list): List of apex coordinates and indices (including child apexes).
+            - xyzVisPolygon (list): List of 3D coordinates (`x`, `y`, `z`) for visibility polygons.
+            - xyVisPolygonAll (list): List of `x` and `y` coordinates for all visibility polygons.
+            - thetaMesh (np.ndarray): 2D array of angular distribution relative to apex(es).
     """
     # Set default options
     options.setdefault('caseName', 'cone')
     options.setdefault('tanAlphaM', [np.nan] * len(zApexM))
     options.setdefault('KM', [np.nan] * len(zApexM))
     options.setdefault('tanInfiniteM', [np.nan] * len(zApexM))
-    options.setdefault('dz_interpM', [np.nan] * len(zApexM))
+    options.setdefault('sz_interpM', [np.nan] * len(zApexM))
     options.setdefault('dispflag', False)
     options.setdefault('saveVisPolygon', False)
 
@@ -277,7 +280,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                 'K': options['KM'][jj],
                 'zApex0': zApexM[jj],
                 'tanInfinite': options['tanInfiniteM'][jj],
-                'dz_interp': options['dz_interpM'][jj]
+                'sz_interp': options['sz_interpM'][jj]
             })
 
             # apex_zMesh = interp2d(yApex, xApex, yMesh[:, 0], xMesh[0, :], zMesh)
@@ -316,7 +319,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                             'K': options['KM'][jj],
                             'zApex0': zApexM[jj],
                             'tanInfinite': options['tanInfiniteM'][jj],
-                            'dz_interp': options['dz_interpM'][jj]
+                            'sz_interp': options['sz_interpM'][jj]
                         })
                         xyzVisPolygon.append(np.column_stack((xVisi, yVisi, zVisi)))
 
@@ -356,7 +359,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                         'K': options['KM'][jj],
                         'zApex0': zApexM[jj],
                         'tanInfinite': options['tanInfiniteM'][jj],
-                        'dz_interp': options['dz_interpM'][jj]
+                        'sz_interp': options['sz_interpM'][jj]
                     })
 
                     for i in range(len(xChildApex)):
@@ -378,7 +381,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                                     'K': options['KM'][jj],
                                     'zApex0': zApexM[jj],
                                     'tanInfinite': options['tanInfiniteM'][jj],
-                                    'dz_interp': options['dz_interpM'][jj]
+                                    'sz_interp': options['sz_interpM'][jj]
                                 }))
                                 D = np.sqrt((xyzkApex[isSameXorY, 0] - xApex) ** 2 + (xyzkApex[isSameXorY, 1] - yApex) ** 2)
                                 xyzkApex[isSameXorY, 2] = np.maximum(xyzkApex[isSameXorY, 2], cone_function(zApex, D, {
@@ -387,7 +390,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                                     'K': options['KM'][jj],
                                     'zApex0': zApexM[jj],
                                     'tanInfinite': options['tanInfiniteM'][jj],
-                                    'dz_interp': options['dz_interpM'][jj]
+                                    'sz_interp': options['sz_interpM'][jj]
                                 }))
                             else:
                                 # Add new semi-apex
@@ -404,7 +407,7 @@ def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
                         'K': options['KM'][jj],
                         'zApex0': zApexM[jj],
                         'tanInfinite': options['tanInfiniteM'][jj],
-                        'dz_interp': options['dz_interpM'][jj]
+                        'sz_interp': options['sz_interpM'][jj]
                     })
 
                     if kApex is None:
