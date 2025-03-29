@@ -2,6 +2,8 @@ from osgeo import gdal, osr, ogr
 import numpy as np
 import subprocess
 import matplotlib.pyplot as plt
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
 gdal.UseExceptions()
 
 def read_geotiff(file_path):
@@ -104,40 +106,125 @@ def write_geotiff(file_path, xMesh, yMesh, zMesh, epsg_code=None):
     dataset = None
 
 
-def clip_geotiff_with_shapefile(geotiff_path, shapefile_path, clipped_geotiff_path=None):
+def clip_geotiff_with_shapefile(
+    geotiff_path,
+    shapefile_path,
+    clipped_geotiff_path=None,
+    center_coords=True,
+    no_data_value=-9999,
+    add_nan_padding = True
+):
+    """
+    Clips a GeoTIFF by a shapefile boundary and returns its coordinate mesh and raster data.
+
+    Parameters
+    ----------
+    geotiff_path : str
+        Path to the input GeoTIFF file.
+    shapefile_path : str
+        Path to the clipping shapefile.
+    clipped_geotiff_path : str, optional
+        Path to save the clipped output GeoTIFF. If None, the clipping is done in memory.
+    center_coords : bool, optional
+        If True, xMesh and yMesh represent pixel centers rather than pixel corners.
+    no_data_value : float, optional
+        No-data value to assign after clipping.
+
+    Returns
+    -------
+    (xMesh, yMesh, zMesh) : tuple of np.ndarray
+        xMesh : 2D array, x-coordinates of each pixel
+        yMesh : 2D array, y-coordinates of each pixel
+        zMesh : 2D array, raster data with no-data replaced by np.nan
+    """
+
     # Open the GeoTIFF file
     geotiff = gdal.Open(geotiff_path)
-    
+    if geotiff is None:
+        raise IOError(f"Could not open GeoTIFF file: {geotiff_path}")
+
     # Define GDAL Warp options for clipping
     warp_options = gdal.WarpOptions(
-        format='GTiff' if clipped_geotiff_path else 'MEM',  # Use MEM for in-memory processing if no path is given
+        format='GTiff' if clipped_geotiff_path else 'MEM',  # Use MEM if no path is given
         cutlineDSName=shapefile_path,
         cropToCutline=True,
-        dstNodata=-9999  # Specify no-data value
+        dstNodata=no_data_value
     )
-    
+
     # Perform the clipping operation
-    clipped_ds = gdal.Warp(clipped_geotiff_path if clipped_geotiff_path else '', geotiff, options=warp_options)
-    
+    clipped_ds = gdal.Warp(
+        destNameOrDestDS=(clipped_geotiff_path if clipped_geotiff_path else ''),
+        srcDSOrSrcDSTab=geotiff,
+        options=warp_options
+    )
+
     if clipped_ds is None:
         raise RuntimeError("GDAL Warp operation failed. Please check your input files and paths.")
-    
-    # Extract the clipped raster data as a numpy array
-    zMesh = clipped_ds.GetRasterBand(1).ReadAsArray()
-    zMesh[zMesh == -9999] = np.nan
-    
-    # Obtain geo-transform information and generate coordinate meshes
+
+    # Read the data from the clipped raster band
+    band = clipped_ds.GetRasterBand(1)
+    zMesh = band.ReadAsArray().astype(float)
+
+    # Replace the no-data value with np.nan
+    zMesh[zMesh == no_data_value] = np.nan
+
+    # Get the geotransform (affine transform coefficients)
     transform = clipped_ds.GetGeoTransform()
     x_min, pixel_width, _, y_max, _, pixel_height = transform
-    
-    # Use np.linspace to generate coordinate arrays
-    xArray = np.linspace(x_min, x_min + (clipped_ds.RasterXSize - 1) * pixel_width, clipped_ds.RasterXSize)
-    yArray = np.linspace(y_max, y_max + (clipped_ds.RasterYSize - 1) * pixel_height, clipped_ds.RasterYSize)
-    
-    # Create mesh grids
+
+    # Raster size
+    nX = clipped_ds.RasterXSize
+    nY = clipped_ds.RasterYSize
+
+    # If the user wants pixel-center coordinates, shift by half a pixel
+    if center_coords:
+        x_min += 0.5 * pixel_width
+        y_max += 0.5 * pixel_height
+
+    # Generate coordinate arrays
+    xArray = np.linspace(x_min, x_min + (nX - 1) * pixel_width, nX)
+    yArray = np.linspace(y_max, y_max + (nY - 1) * pixel_height, nY)
+
+    # Create 2D meshgrids
     xMesh, yMesh = np.meshgrid(xArray, yArray)
-    
-    # Return the coordinate meshes and raster data
+    if add_nan_padding:
+        # Original sizes
+        old_nY, old_nX = zMesh.shape
+
+        # Compute pixel steps (assuming > 1 pixel in each dimension).
+        # - If your dataset is only 1 pixel wide in X or Y, you'll need special handling.
+        deltaX = xArray[1] - xArray[0] if old_nX > 1 else 1.0
+        deltaY = yArray[1] - yArray[0] if old_nY > 1 else -1.0  # often negative if north-up
+
+        # New sizes
+        new_nX = old_nX + 2
+        new_nY = old_nY + 2
+
+        # Extended coordinate range
+        new_x_min = xArray[0] - deltaX
+        new_x_max = xArray[-1] + deltaX
+
+        new_y_min = yArray[0] - deltaY
+        new_y_max = yArray[-1] + deltaY
+
+        # Create the new coordinate arrays
+        new_xArray = np.linspace(new_x_min, new_x_max, new_nX)
+        new_yArray = np.linspace(new_y_min, new_y_max, new_nY)
+
+        # Meshgrids with 1-pixel padding
+        new_xMesh, new_yMesh = np.meshgrid(new_xArray, new_yArray)
+
+        # Create a new z array of NaNs
+        new_zMesh = np.full((new_nY, new_nX), np.nan, dtype=zMesh.dtype)
+        # Insert the original data in the center
+        new_zMesh[1:-1, 1:-1] = zMesh
+
+        # Overwrite the original variables
+        xMesh, yMesh, zMesh = new_xMesh, new_yMesh, new_zMesh
+    # If you do not need the dataset object anymore, close it
+    clipped_ds = None
+    geotiff = None
+
     return xMesh, yMesh, zMesh
 
 
@@ -203,6 +290,106 @@ def read_shapefile_boundary(shapefile_path):
             all_fan_boundary_y.append(interior_y)
     
     return all_fan_boundary_x, all_fan_boundary_y
+
+def plot_hull_and_boundary(hull, polygons, union_polygon):
+    """
+    Plots:
+      - The convex hull (in red)
+      - Each individual boundary polygon (in blue)
+      - The union polygon boundary (in green, optional)
+    """
+    fig, ax = plt.subplots()
+
+    # Plot each fan boundary polygon
+    for i, poly in enumerate(polygons):
+        x, y = poly.exterior.xy
+        ax.plot(x, y, color='blue', label='Boundary' if i == 0 else "")
+
+    # Plot the union boundary (optional, in green)
+    if union_polygon.geom_type == 'Polygon':
+        union_x, union_y = union_polygon.exterior.xy
+        ax.plot(union_x, union_y, color='green', linestyle='--', label='Union')
+    else:
+        # If union is multi-polygon, plot each one
+        for j, subpoly in enumerate(union_polygon):
+            union_x, union_y = subpoly.exterior.xy
+            ax.plot(union_x, union_y, color='green', linestyle='--',
+                    label='Union' if j == 0 else "")
+
+    # Plot the convex hull (in red)
+    hull_x, hull_y = hull.exterior.xy
+    ax.plot(hull_x, hull_y, color='red', linewidth=2, label='Convex Hull')
+
+    ax.set_aspect('equal', 'datalim')
+    ax.legend()
+    plt.show()
+
+def get_convex_hull_and_perimeter(shapefile_path, pltFlag = False):
+    # Open the shapefile
+    shapefile = ogr.Open(shapefile_path)
+    layer = shapefile.GetLayer()
+    
+    fan_boundary_x = []
+    fan_boundary_y = []
+
+    # Helper function to check if points are in CCW order
+    def is_ccw(x, y):
+        # Calculate the signed area
+        area = 0.0
+        for i in range(len(x)):
+            j = (i + 1) % len(x)
+            area += x[i] * y[j] - y[i] * x[j]
+        return area > 0
+
+    for feature in layer:
+        geom = feature.GetGeometryRef()
+
+        # Extract the exterior ring (outer boundary)
+        exterior_ring = geom.GetGeometryRef(0)
+        exterior_x = []
+        exterior_y = []
+        for i in range(exterior_ring.GetPointCount()):
+            lon, lat, _ = exterior_ring.GetPoint(i)
+            exterior_x.append(lon)
+            exterior_y.append(lat)
+        
+        # Make sure it is CCW
+        if not is_ccw(exterior_x, exterior_y):
+            exterior_x.reverse()
+            exterior_y.reverse()
+
+        # Ensure closed ring
+        if exterior_x[0] != exterior_x[-1] or exterior_y[0] != exterior_y[-1]:
+            exterior_x = np.append(exterior_x, exterior_x[0])
+            exterior_y = np.append(exterior_y, exterior_y[0])
+
+        fan_boundary_x.append(exterior_x)
+        fan_boundary_y.append(exterior_y)
+
+    polygons = []
+    
+    # Convert each boundary list into a Shapely Polygon
+    for x_coords, y_coords in zip(fan_boundary_x, fan_boundary_y):
+        # zip the x/y together into (x,y) pairs
+        coords = list(zip(x_coords, y_coords))
+        polygon = Polygon(coords)
+        polygons.append(polygon)
+    
+    # Merge (union) all polygons into one geometry
+    union_polygon = unary_union(polygons)
+    
+    # Compute the convex hull of the union
+    hull = union_polygon.convex_hull
+    
+    # Perimeter (length of the hull)
+    hull_perimeter = hull.length
+    boundary_perimeter = union_polygon.length
+    if pltFlag:
+        plot_hull_and_boundary(hull, polygons, union_polygon)
+    
+    return hull, hull_perimeter, boundary_perimeter
+
+
 
 def save_resampled_geotiff(data, geo_transform, projection, output_path):
     # Get the dimensions of the data
@@ -408,3 +595,56 @@ def calculate_volume_difference_within_polygon(pre_tiff, post_tiff, shapefile_pa
     return volume_difference
 
 
+def calculate_polygon_area(shapefile_path, target_epsg=None):
+    """
+    Calculate the area of a single polygon in a shapefile.
+
+    Parameters:
+        shapefile_path (str): Path to the input shapefile.
+        target_epsg (int, optional): EPSG code for the target CRS. If provided,
+                                     reprojects the geometry to this CRS for area calculations.
+
+    Returns:
+        float: The area of the polygon.
+
+    Raises:
+        ValueError: If the shapefile does not contain exactly one feature.
+        FileNotFoundError: If the shapefile cannot be opened.
+    """
+    # Open the shapefile
+    shapefile = ogr.Open(shapefile_path)
+    if shapefile is None:
+        raise FileNotFoundError(f"Could not open shapefile: {shapefile_path}")
+    layer = shapefile.GetLayer()
+
+    # Check the number of features in the layer
+    feature_count = layer.GetFeatureCount()
+    if feature_count != 1:
+        raise ValueError(f"The shapefile must contain exactly one feature, but it contains {feature_count}.")
+
+    # Get the spatial reference of the shapefile
+    spatial_ref = layer.GetSpatialRef()
+
+    # Initialize a transformation if a target EPSG is provided
+    if target_epsg:
+        target_ref = osr.SpatialReference()
+        target_ref.ImportFromEPSG(target_epsg)
+        transform = osr.CoordinateTransformation(spatial_ref, target_ref)
+    else:
+        transform = None
+
+    # Get the single feature
+    feature = layer.GetNextFeature()
+    geometry = feature.GetGeometryRef()
+
+    # Reproject geometry if a transformation is defined
+    if transform:
+        geometry.Transform(transform)
+
+    # Calculate the area
+    area = geometry.GetArea()  # Area in units of the CRS (e.g., square meters if projected)
+
+    # Close the shapefile
+    shapefile = None
+
+    return area

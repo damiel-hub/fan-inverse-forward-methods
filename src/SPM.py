@@ -26,7 +26,7 @@ class SPM:
     def xyApex(self):
         return self.xApex, self.yApex
 
-    def within_boundary(self, pltFlag=False, debug = False):
+    def within_boundary(self, pltFlag=False, debug = False, saveFlag = False):
         '''
             Process the shortest path map within the boundary.
         '''
@@ -41,6 +41,7 @@ class SPM:
         # Set the apex height for the shortest path calculation
         zApex_s = diagonal_length * 10 - 1e-4
         
+        # gis_utils.write_geotiff('wallMesh2.tif', self.xMesh_crop, self.yMesh_crop, wallMesh,3826)
         # Compute the shortest path topography using a hypothetical FanTopo function
         sTopo = fanTopo.fan_topo(self.xMesh_crop, self.yMesh_crop, wallMesh, [self.xApex], [self.yApex], [zApex_s], {
             'caseName': 'cone',
@@ -62,9 +63,13 @@ class SPM:
             plt.title('Shortest Path Distance Map')
             plt.xlabel('Easting (m)')
             plt.ylabel('Northing (m)')
-            plt.show(block = False)
-            plt.pause(0.01)
+            # plt.show(block = False)
+            # plt.pause(0.01)
             # plt.close()
+            if isinstance(saveFlag, str):
+                plt.savefig(saveFlag, dpi=300, bbox_inches='tight')
+            else:
+                plt.savefig('SPM.png', dpi=300, bbox_inches='tight')
         
         return self.xMesh_crop, self.yMesh_crop, self.zMesh_crop, sMap
 
@@ -128,7 +133,7 @@ class SPM:
 
         return z_total
     
-    def along_boundary(self, pltFlag = False):
+    def along_boundary(self, pltFlag = False, saveFlag = False):
         '''
             Process the shortest path distance along the boundary.
         '''
@@ -166,10 +171,15 @@ class SPM:
             plt.xlabel('Resampled E Total')
             plt.ylabel('Resampled N Total')
             plt.title('Points Colored by Shortest Path Distance')
+            plt.axis('equal')
 
             # Show plot
-            plt.show(block = False)
-            plt.pause(0.01)
+            # plt.show(block = False)
+            # plt.pause(0.01)
             # plt.close()
+            if isinstance(saveFlag, str):
+                plt.savefig(saveFlag, dpi=300, bbox_inches='tight')
+            else:
+                plt.savefig('SPM_along_boundary.png', dpi=300, bbox_inches='tight')
         
         return resampled_x_total, resampled_y_total, resampled_z_total, resampled_s_total

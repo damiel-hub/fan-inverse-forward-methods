@@ -42,7 +42,7 @@ class EDR: # Elevation-Distance Relationship
         Q2 = Q2[valid]
 
         # Polynomial fitting and extrapolation
-        dd_max = np.max(bin_pts_mid_s)
+        dd_max = np.max(self.s_flatten)
         dd_in = np.arange(0, dd_max + ds, ds)
         
         if len(bin_pts_mid_s) > 0:
@@ -90,11 +90,11 @@ class EDR: # Elevation-Distance Relationship
                 RMSE_value = np.sqrt(np.sum((z_hat - self.z_flatten)**2)/z_hat.size)
                 slope = -L*dd_max - S
                 dimensionless_drop = L*dd_max/4
-                return fitting_s_z, slope, dimensionless_drop, RMSE_value
+                return fitting_s_z, slope, dimensionless_drop, RMSE_value, L, S, P, dd_max, bin_pts_mid_s, Q2
             else:
                 return fitting_s_z
         
-    def medianFilter_off(self, ds, outlength, pltFlag = False, drawFlag = False):    
+    def medianFilter_off(self, ds, outlength, pltFlag = False, drawFlag = False, return_fitting_coeff = False):    
         
         dd_max = np.max(self.s_flatten)
         dd_in = np.arange(0, dd_max + ds, ds)
@@ -123,8 +123,8 @@ class EDR: # Elevation-Distance Relationship
                 plt.gca().set_aspect(5)
                 plt.grid(True)
                 plt.box(True)
-                plt.show(block = False)
-                plt.pause(0.01)
+                # plt.show(block = False)
+                # plt.pause(0.01)
                 if isinstance(pltFlag, str):
                     plt.savefig(pltFlag, dpi=300, bbox_inches='tight')
                 else:
@@ -139,4 +139,14 @@ class EDR: # Elevation-Distance Relationship
             ss = np.concatenate([dd_up, dd_in, dd_do])
             zz = np.concatenate([z_up, z_in, z_do])
             fitting_s_z = np.vstack((ss, zz)).T
-            return fitting_s_z
+            if return_fitting_coeff:
+                z_hat = np.zeros_like(self.s_flatten)
+                z_hat[self.s_flatten<=0] = S*self.s_flatten[self.s_flatten<=0] + P
+                z_hat[(self.s_flatten > 0) & (self.s_flatten < dd_max)] = L*self.s_flatten[(self.s_flatten > 0) & (self.s_flatten < dd_max)]**2 + S*self.s_flatten[(self.s_flatten > 0) & (self.s_flatten < dd_max)] + P
+                z_hat[self.s_flatten>=dd_max] = (2*L*dd_max + S)*self.s_flatten[self.s_flatten>=dd_max] - L*dd_max**2 + P
+                RMSE_value = np.sqrt(np.sum((z_hat - self.z_flatten)**2)/z_hat.size)
+                slope = -L*dd_max - S
+                dimensionless_drop = L*dd_max/4
+                return fitting_s_z, slope, dimensionless_drop, RMSE_value, L, S, P, dd_max
+            else:
+                return fitting_s_z
