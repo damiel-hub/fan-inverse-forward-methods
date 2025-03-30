@@ -6,6 +6,11 @@ This repository contains Python implementations of the forward and inverse metho
 
 While the **forward method** generates fan surfaces using an assumed elevation-distance relationship, the **inverse method** focuses on reconstructing fan parameters from observed topography. This method is a new contribution, aimed at deducing fan characteristics by analyzing real-world data, making it a valuable tool for fan simulation.
 
+![alt text](results/elevation_distance_relationship.png "Inverse method: extracted distance-elevation relationship")
+- **Figure 1**: Inverse method: extracted distance-elevation relationship from observed topography with fan boundary $\mathcal{B}$. For more detail, please see in [demo code](https://github.com/damiel-hub/fan-inverse-forward-methods/blob/main/demo_fan_inverse_forward_methods.ipynb).
+
+
+
 ## Key Algorithms Used
 
 1. **Visibility Polygon Algorithm**: Used to obtain visibility polygon and compute shortest path distances from the apex. We implemented the [Python binding](https://github.com/tsaoyu/PyVisiLibity) of [VisiLibity 1](http://www.VisiLibity.org), originally developed by [Yu Cao](https://www.tsaoyu.com/). The implementation was modified in [Commit 0873a76](https://github.com/damiel-hub/fan-inverse-forward-methods/commit/0873a7673f9fa7b588234915ffc3a4eabcbf8882) to record the semi-apexes of the visibility polygon.
@@ -17,38 +22,36 @@ While the **forward method** generates fan surfaces using an assumed elevation-d
 
 ## Repository Implementation
 
-This repository contains Python code that translates the original MATLAB implementation of the **forward method** and develops the **inverse method** for reconstructing fan parameters from observed topography.
+This repository contains Python code that translates the original MATLAB implementation of the **forward method** and develops the **inverse method** for reconstructing fan profile from observed topography.
 
 
-# Installation Instructions
+# Setup Guide (Step-by-Step)
 
-## Prerequisite Software
-1. Anaconda: [Install tutorial](https://www.jcchouinard.com/install-python-with-anaconda-on-windows/), 
-[Download link](https://www.anaconda.com/download?utm_source=anacondadocs&utm_medium=documentation&utm_campaign=download&utm_content=installwindows).
+1. **Install prerequisite software**
+    - Anaconda: [Install tutorial](https://www.jcchouinard.com/install-python-with-anaconda-on-windows/), 
+    [Download link](https://www.anaconda.com/download?utm_source=anacondadocs&utm_medium=documentation&utm_campaign=download&utm_content=installwindows).
 
-2. Microsoft C++ Build Tools: [Download link](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-
-
-3. SWIG: [Download link](https://www.swig.org/download.html)
-    
-    - **Note:** Make sure to add the SWIG path to your system's environment variables.
-
-3. Visual Studio Code (VS Code): [Downlaod link](https://code.visualstudio.com/).
-
-## Setup Guide (Step-by-Step)
+    - Microsoft C++ Build Tools: [Download link](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 
 
-1. **Download and extract required files**  
-   - Download the file **`fan-inverse-forward-methods.zip`** from the website or directly using this [link](https://github.com/damiel-hub/fan-inverse-forward-methods/archive/refs/heads/main.zip).  
+    - SWIG: [Download link](https://www.swig.org/download.html)
+        
+        - **Note:** Make sure to add the SWIG path to your system's environment variables.
+
+    - Visual Studio Code (VS Code): [Downlaod link](https://code.visualstudio.com/).
+
+
+2. **Download and extract required files**  
+   - Download the file **`fan-inverse-forward-methods.zip`** from [link](https://github.com/damiel-hub/fan-inverse-forward-methods/archive/refs/heads/main.zip).  
    - Extract the contents of the ZIP file to your preferred directory.
 
-2. **Install dependencies**  
+3. **Install dependencies**  
    - Open the **Anaconda Prompt** on your computer.  
    - Navigate to the directory **`fan-inverse-forward-methods\setup`** using the `cd` command. Replace `to_your_path` with the actual path to the extracted folder:  
      ```bash
      cd to_your_path\fan-inverse-forward-methods\setup
      ```  
-   - **Note:** If the folder is on a different drive (ex, D:), switch to that drive first by typing the drive letter followed by a colon (`:`):  
+   - **Note:** If the folder is on a different drive (ex. D:), switch to that drive first by typing the drive letter followed by a colon (`:`):  
      ```bash
      D:
      ```  
@@ -62,7 +65,7 @@ This repository contains Python code that translates the original MATLAB impleme
      ```
 
 
-5. **Run demo code**  
+4. **Run demo code**  
    - Open the VS Code.  
    - File > Open Folder > Select the folder **`fan-inverse-forward-methods`**.
     - Open the **`demo_fan_inverse_forward_methods.ipynb`** file from the left panel.
@@ -75,13 +78,13 @@ This repository contains Python code that translates the original MATLAB impleme
 
 By following these steps, you can successfully set up and run inverse and forward analyses.
 
-## How to Cite
+# How to Cite
 
 If you use this project in your research or work, please give us credit by citing it with the following BibTeX entries:
 
 ### Inverse method: extracting the distance-elevation relationship
 ```
-Chiu, Y.H. & Capart, H. (In process). *Inverse Computational Morphology of Debris and Alluvial Fans*. Retrieved from [https://github.com/damiel-hub/geometric-alluvial-fan].
+Chiu, Y.H.D. Chen, T.Y.K and Capart, H. (In process). *Inverse computational morphology of debris and alluvial fans*. *Computers & Geosciences*.
 ```
 ### Forward method: simulating fan topography
 
@@ -101,7 +104,7 @@ keywords = {Morphology, Debris flow, Alluvial fan, Surface of revolution, Eikona
 ```
 
 
-## Reference
+# Reference
 
 - Chen, T.Y.K. & Capart, H. (2022). [Computational morphology of debris and alluvial fans on irregular terrain using the visibility polygon](https://doi.org/10.1016/j.cageo.2022.105228). *Computers & Geosciences*, *169*, 105228. 
 
