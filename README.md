@@ -1,8 +1,9 @@
 # fan-inverse-forward-methods
 
+## Introduction
 This repository contains Python implementations of the forward and inverse methods for analyzing debris and alluvial fan morphology. The **forward method** is based on the work of [Chen and Capart (2022)](https://doi.org/10.1016/j.cageo.2022.105228) and focuses on generating fan surfaces based on assumed elevation-distance relationships. The **inverse method**, which is a complement to the forward approach, extracts key fan elevation-distance profile from observed topography.
 
-## Focus: Inverse Method
+## Focus: Inverse method
 
 While the **forward method** generates fan surfaces using an assumed elevation-distance relationship, the **inverse method** focuses on reconstructing fan parameters from observed topography. This method is a new contribution, aimed at deducing fan characteristics by analyzing real-world data, making it a valuable tool for fan simulation.
 
@@ -11,21 +12,23 @@ While the **forward method** generates fan surfaces using an assumed elevation-d
 
 
 
-## Key Algorithms Used
+## Key algorithms used
 
-1. **Visibility Polygon Algorithm**: Used to obtain visibility polygon and compute shortest path distances from the apex. We implemented the [Python binding](https://github.com/tsaoyu/PyVisiLibity) of [VisiLibity 1](http://www.VisiLibity.org), originally developed by [Yu Cao](https://www.tsaoyu.com/). The implementation was modified in [Commit 0873a76](https://github.com/damiel-hub/fan-inverse-forward-methods/commit/0873a7673f9fa7b588234915ffc3a4eabcbf8882) to record the semi-apexes of the visibility polygon.
+1. **Visibility polygon algorithm**: Used to obtain visibility polygon and compute shortest path distances from the apex. We implemented the [Python binding](https://github.com/tsaoyu/PyVisiLibity) of [VisiLibity 1](http://www.VisiLibity.org), originally developed by [Yu Cao](https://www.tsaoyu.com/). The implementation was modified in [Commit 0873a76](https://github.com/damiel-hub/fan-inverse-forward-methods/commit/0873a7673f9fa7b588234915ffc3a4eabcbf8882) to record the semi-apexes of the visibility polygon.
 
-2. **Contouring Algorithm**: For extracting fan boundaries from topographic data we using the [scikit-image](https://github.com/scikit-image/scikit-image) module in Python.
+2. **Contouring algorithm**: For extracting fan boundaries from topographic data we using the [scikit-image](https://github.com/scikit-image/scikit-image) module in Python.
 
-3. **Point-in-Polygon Algorithm**: Determines which points lie inside a given polygon. We use the fast point-in-polygon algorithm developed by [Engwirda (2020)](https://github.com/dengwirda/inpoly-python) and described in [Kepner et al. (2020)](https://arxiv.org/abs/2005.03156). For easier installation, we use the version by [Hans Alemão](https://github.com/hansalemaos), which adds automatic compilation of the fast kernels from the original [inpoly-python](https://github.com/dengwirda/inpoly-python#fast-kernels) by Engwirda (2020).
+3. **Point-in-polygon algorithm**: Determines which points lie inside a given polygon. We use the fast point-in-polygon algorithm developed by [Engwirda (2020)](https://github.com/dengwirda/inpoly-python) and described in [Kepner et al. (2020)](https://arxiv.org/abs/2005.03156). For easier installation, we use the version by [Hans Alemão](https://github.com/hansalemaos), which adds automatic compilation of the fast kernels from the original [inpoly-python](https://github.com/dengwirda/inpoly-python#fast-kernels) by Engwirda (2020).
 
 
-## Repository Implementation
+## Repository implementation
 
 This repository contains Python code that translates the original MATLAB implementation of the **forward method** and develops the **inverse method** for reconstructing fan profile from observed topography.
 
+## Dependencies  
+- VisiLibity, GDAL and the packages listed in the [requirements.txt](https://github.com/damiel-hub/fan-inverse-forward-methods/blob/main/setup/requirements.txt) file are required Python dependencies.
 
-# Setup Guide (Step-by-Step)
+# Setup guide (step-by-step)
 
 1. **Install prerequisite software**
     - Anaconda: [Install tutorial](https://www.jcchouinard.com/install-python-with-anaconda-on-windows/), 
@@ -78,7 +81,7 @@ This repository contains Python code that translates the original MATLAB impleme
 
 By following these steps, you can successfully set up and run inverse and forward analyses.
 
-# How to Cite
+# How to cite
 
 If you use this project in your research or work, please give us credit by citing it with the following BibTeX entries:
 
@@ -106,10 +109,10 @@ keywords = {Morphology, Debris flow, Alluvial fan, Surface of revolution, Eikona
 
 # Reference
 
-- Chen, T.Y.K. & Capart, H. (2022). [Computational morphology of debris and alluvial fans on irregular terrain using the visibility polygon](https://doi.org/10.1016/j.cageo.2022.105228). *Computers & Geosciences*, *169*, 105228. 
+- Chen, T.Y.K. and H. Capart. (2022). "Computational morphology of debris and alluvial fans on irregular terrain using the visibility polygon," *Computers & Geosciences*, vol. 169, 105228. https://doi.org/10.1016/j.cageo.2022.105228.  
 
-- Kepner, J., Engwirda, D., Gadepally, V., Hill, C., Kraska, T., Jones, M., Kipf, A., Milechin, L., & Vembar, N. (2020). [Fast Mapping onto Census Blocks](https://arxiv.org/abs/2005.03156). *IEEE HPEC*. 
+- Kepner, J., D. Engwirda, V. Gadepally, C. Hill, T. Kraska, M. Jones, A. Kipf, L. Milechin, and N. Vembar. (2020). "Fast Mapping onto Census Blocks," *IEEE HPEC*. https://arxiv.org/abs/2005.03156.  
 
-- Obermeyer, K.J., & Contributors. (2008). [VisiLibity: A C++ Library for Visibility Computations in Planar Polygonal Environments](http://www.VisiLibity.org). *v1*.
+- Obermeyer, K.J. and Contributors. (2008). "VisiLibity: A C++ Library for Visibility Computations in Planar Polygonal Environments," *v1*. http://www.VisiLibity.org.  
 
-- van der Walt, S., Schönberger, J.L., Nunez-Iglesias, J., Boulogne, F., Warner, J.D., Yager, N., Gouillart, E., Yu, T., & the scikit-image contributors. (2014). [scikit-image: Image processing in Python](https://doi.org/10.7717/peerj.453). *PeerJ*, *2*, e453.
+- van der Walt, S., J.L. Schönberger, J. Nunez-Iglesias, F. Boulogne, J.D. Warner, N. Yager, E. Gouillart, T. Yu, and the scikit-image contributors. (2014). "scikit-image: Image processing in Python," *PeerJ*, vol. 2, e453. https://doi.org/10.7717/peerj.453.  
