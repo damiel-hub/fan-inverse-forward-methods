@@ -69,7 +69,8 @@ class SPM:
             if isinstance(saveFlag, str):
                 plt.savefig(saveFlag, dpi=300, bbox_inches='tight')
             else:
-                plt.savefig('SPM.png', dpi=300, bbox_inches='tight')
+                if saveFlag:
+                    plt.savefig('SPM.png', dpi=300, bbox_inches='tight')
         
         return self.xMesh_crop, self.yMesh_crop, self.zMesh_crop, sMap
 
@@ -180,6 +181,7 @@ class SPM:
             if isinstance(saveFlag, str):
                 plt.savefig(saveFlag, dpi=300, bbox_inches='tight')
             else:
-                plt.savefig('SPM_along_boundary.png', dpi=300, bbox_inches='tight')
+                if saveFlag:
+                    plt.savefig('SPM_along_boundary.png', dpi=300, bbox_inches='tight')
         
         return resampled_x_total, resampled_y_total, resampled_z_total, resampled_s_total
