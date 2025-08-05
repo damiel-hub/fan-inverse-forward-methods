@@ -90,7 +90,7 @@ def plot_hillshade(xMesh, yMesh, zMesh, azdeg=180, altdeg=45, vert_exag=1):
                              dy=yMesh[1, 0] - yMesh[0, 0])
 
     # Plot the hillshade
-    plt.figure(figsize=(10, 8))
+    # plt.figure(figsize=(10, 8))
     plt.imshow(hillshade, cmap='gray', extent=[xMesh.min(), xMesh.max(), yMesh.min(), yMesh.max()])
     # plt.colorbar(label='Hillshade intensity')
     plt.title('Hillshade')

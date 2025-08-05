@@ -179,6 +179,71 @@ def visi_polygon_shortest_path(polygonX, polygonY, observeX, observeY, endX, end
     
     return shortest_path_length
 
+def calculate_shortest_path(polygonX, polygonY, startX, startY, finishX, finishY, epsilon=1e-8, snap_dist=0.2):
+    """
+    Calculates the shortest path between two points within a polygon or environment.
+
+    This function constructs the geometric environment, defines the start and end
+    points, and leverages the VisiLibity library to compute the shortest path.
+    The path is returned as a sequence of waypoint coordinates.
+
+    Parameters:
+    polygonX (list of lists of float): A list containing the X coordinates for each polygon. 
+                                       The first is the outer boundary (CCW), others are holes (CW).
+    polygonY (list of lists of float): A list containing the Y coordinates for each polygon.
+    startX (float): The X coordinate of the starting point.
+    startY (float): The Y coordinate of the starting point.
+    finishX (float): The X coordinate of the finishing point.
+    finishY (float): The Y coordinate of the finishing point.
+    epsilon (float): A small tolerance for floating-point geometric calculations.
+    snap_dist (float): Distance to snap points to the boundary/vertices for robustness.
+
+    Returns:
+    tuple: A tuple containing two lists (path_x, path_y).
+           - path_x (list of float): X coordinates of the waypoints along the shortest path.
+           - path_y (list of float): Y coordinates of the waypoints along the shortest path.
+           Returns ([], []) if the path cannot be found or if points are outside the environment.
+    """
+     # 1. Create the environment
+    env = create_environment(polygonX, polygonY)
+    
+    # 2. Pre-process and validate the environment
+    env.enforce_standard_form()
+    if not env.is_valid(epsilon):
+        print("FATAL ERROR: The environment geometry is not valid.")
+        return [], []
+    
+    # 3. Create Point objects
+    start_point = vis.Point(startX, startY)
+    finish_point = vis.Point(finishX, finishY)
+
+    # 4. Snap points for robustness
+    if not start_point._in(env, epsilon):
+        start_point.snap_to_boundary_of(env, snap_dist)
+    if not finish_point._in(env, epsilon):
+        finish_point.snap_to_boundary_of(env, snap_dist)
+    
+    if not start_point._in(env, epsilon) or not finish_point._in(env, epsilon):
+        print("Warning: A point is still outside the environment even after snapping.")
+        return [], []
+
+    # 5. Compute the shortest path. This still returns a Polyline object.
+    shortest_path_polyline = env.shortest_path(start_point, finish_point, epsilon)
+
+    # 6. Check if the path is empty (pathfinding failed)
+    if shortest_path_polyline.size() == 0:
+        print("Warning: Pathfinding returned an empty path.")
+        return [], []
+        
+    # 7. *** CORRECTED EXTRACTION LOGIC ***
+    #    Use the .path() method to get a list of the Point objects.
+    path_vertices = shortest_path_polyline.path()
+    
+    # Now you can iterate over this list of vertices like a standard Python list.
+    path_x = [p.x() for p in path_vertices]
+    path_y = [p.y() for p in path_vertices]
+    
+    return path_x, path_y
 
 def fan_topo(xMesh, yMesh, zMesh, xApexM, yApexM, zApexM, options={}):
     """

@@ -228,6 +228,106 @@ def clip_geotiff_with_shapefile(
     return xMesh, yMesh, zMesh
 
 
+from osgeo import ogr
+import numpy as np
+
+def read_polygon_environments(shapefile_path):
+    """
+    Reads a shapefile and extracts each polygon feature as a separate environment.
+
+    Each environment consists of one outer boundary and zero or more inner holes.
+    The function ensures correct winding order for compatibility with VisiLibity:
+    - Outer boundaries are forced to be Counter-Clockwise (CCW).
+    - Inner holes are forced to be Clockwise (CW).
+
+    It also removes the duplicate closing vertex that is common in shapefiles,
+    as VisiLibity handles polygon closing internally.
+
+    Parameters:
+    shapefile_path (str): The file path to the input shapefile.
+
+    Returns:
+    list: A list of tuples. Each tuple represents one polygon feature and contains
+          (list_of_x_coords, list_of_y_coords).
+          For example: [ ( [outer_x, hole1_x], [outer_y, hole1_y] ), ... ]
+          Returns an empty list if the shapefile cannot be opened or is empty.
+    """
+    # Helper function to check if points are in CCW order
+    def is_ccw(x_coords, y_coords):
+        # Calculate the signed area using the shoelace formula
+        area = 0.0
+        for i in range(len(x_coords)):
+            j = (i + 1) % len(x_coords)
+            area += x_coords[i] * y_coords[j]
+            area -= y_coords[i] * x_coords[j]
+        return area > 0
+
+    shapefile = ogr.Open(shapefile_path)
+    if not shapefile:
+        print(f"Error: Could not open shapefile at {shapefile_path}")
+        return []
+    
+    layer = shapefile.GetLayer()
+    
+    all_environments = []
+
+    # Iterate through each feature (e.g., each fan polygon) in the layer
+    for feature in layer:
+        geom = feature.GetGeometryRef()
+        if geom is None or geom.GetGeometryName() != 'POLYGON':
+            continue
+
+        # Each feature will be treated as a new, separate environment
+        feature_polygons_x = []
+        feature_polygons_y = []
+
+        # --- Process the Exterior Ring (Outer Boundary) ---
+        exterior_ring = geom.GetGeometryRef(0)
+        if exterior_ring is None:
+            continue
+        
+        # Extract points, removing the duplicate closing point if it exists
+        points = exterior_ring.GetPoints()
+        if points and points[0] == points[-1]:
+            points.pop()
+        
+        exterior_x = [p[0] for p in points]
+        exterior_y = [p[1] for p in points]
+        
+        # Ensure the outer boundary is Counter-Clockwise (CCW)
+        if not is_ccw(exterior_x, exterior_y):
+            exterior_x.reverse()
+            exterior_y.reverse()
+            
+        feature_polygons_x.append(exterior_x)
+        feature_polygons_y.append(exterior_y)
+        
+        # --- Process Interior Rings (Holes) ---
+        for j in range(1, geom.GetGeometryCount()):
+            interior_ring = geom.GetGeometryRef(j)
+            if interior_ring is None:
+                continue
+
+            points = interior_ring.GetPoints()
+            if points and points[0] == points[-1]:
+                points.pop()
+                
+            interior_x = [p[0] for p in points]
+            interior_y = [p[1] for p in points]
+            
+            # Ensure holes are Clockwise (CW)
+            if is_ccw(interior_x, interior_y):
+                interior_x.reverse()
+                interior_y.reverse()
+                
+            feature_polygons_x.append(interior_x)
+            feature_polygons_y.append(interior_y)
+            
+        # Add the complete environment for this feature to our list
+        all_environments.append((feature_polygons_x, feature_polygons_y))
+
+    return all_environments
+
 def read_shapefile_boundary(shapefile_path):
     # Open the shapefile
     shapefile = ogr.Open(shapefile_path)
