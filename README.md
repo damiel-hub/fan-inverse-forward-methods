@@ -86,8 +86,16 @@ By following these steps, you can successfully set up and run inverse and forwar
 If you use this project in your research or work, please give us credit by citing it with the following BibTeX entries:
 
 ### Inverse method: extracting the distance-elevation relationship
-```
-Chiu, Y.H.D. Chen, T.Y.K and Capart, H. (In process). *Inverse computational morphology of debris and alluvial fans*. *Computers & Geosciences*.
+```bibtex
+@article{chiuInverseComputationalMorphology2026,
+  title = {Inverse computational morphology of debris and alluvial fans},
+  journal = {Computers & Geosciences},
+  year = {2026},
+  issn = {0098-3004},
+  doi = {[https://doi.org/10.1016/j.cageo.2026.106163](https://doi.org/10.1016/j.cageo.2026.106163)},
+  author = {Yuan-Hung Damiel Chiu and Tzu-Yin Kasha Chen and Hervé Capart},
+  keywords = {Debris flow, Alluvial fan, Fan profile, Morphometry, Computational geometry, Shortest path map}
+}
 ```
 ### Forward method: simulating fan topography
 
@@ -95,7 +103,6 @@ Chiu, Y.H.D. Chen, T.Y.K and Capart, H. (In process). *Inverse computational mor
 @article{chenComputationalMorphologyDebris2022,
 title = {Computational morphology of debris and alluvial fans on irregular terrain using the visibility polygon},
 journal = {Computers & Geosciences},
-volume = {169},
 pages = {105228},
 year = {2022},
 issn = {0098-3004},
@@ -110,6 +117,8 @@ keywords = {Morphology, Debris flow, Alluvial fan, Surface of revolution, Eikona
 # Reference
 
 - Chen, T.Y.K. and H. Capart. (2022). "Computational morphology of debris and alluvial fans on irregular terrain using the visibility polygon," *Computers & Geosciences*, vol. 169, 105228. https://doi.org/10.1016/j.cageo.2022.105228.  
+
+- Chiu, Y.-H. D., Chen, T.-Y. K., & Capart, H. (2026). "Inverse computational morphology of debris and alluvial fans," *Computers & Geosciences*. https://doi.org/10.1016/j.cageo.2026.106163.
 
 - Kepner, J., D. Engwirda, V. Gadepally, C. Hill, T. Kraska, M. Jones, A. Kipf, L. Milechin, and N. Vembar. (2020). "Fast Mapping onto Census Blocks," *IEEE HPEC*. https://arxiv.org/abs/2005.03156.  
 
