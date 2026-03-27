@@ -103,6 +103,7 @@ If you use this project in your research or work, please give us credit by citin
 @article{chenComputationalMorphologyDebris2022,
 title = {Computational morphology of debris and alluvial fans on irregular terrain using the visibility polygon},
 journal = {Computers & Geosciences},
+volume = {169},
 pages = {105228},
 year = {2022},
 issn = {0098-3004},
